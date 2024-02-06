@@ -1,0 +1,15 @@
+Here below, the list of packages to be installed in your environment:
+
+1) Extra libraries to be installed:
+
+pip install swig blosc2=2.0.0
+
+2) Common libraries like gymnasium, opencv, baselines, pybullet, etc.:
+
+pip install gymnasium box2d-py opencv-python stable-baselines cython pybullet pygame
+
+3) MuJoCo
+
+To install mujoco, please follow the installation steps that can be found at the following link:
+
+https://github.com/openai/mujoco-py
