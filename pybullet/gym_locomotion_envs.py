@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, List, Optional
 
 class WalkerBaseBulletEnv(MJCFBaseBulletEnv):
 
-  def __init__(self, render_mode: Optional[str] = None, robot=None):
+  def __init__(self, render_mode: Optional[str] = None, nrobots: Optional[int] = 1, robot=None):
     # print("WalkerBase::__init__ start")
     self.camera_x = 0
     self.walk_target_x = 1e3  # kilometer away
@@ -135,21 +135,21 @@ class WalkerBaseBulletEnv(MJCFBaseBulletEnv):
 
 class HopperBulletEnv(WalkerBaseBulletEnv):
 
-  def __init__(self, render_mode: Optional[str] = None):
+  def __init__(self, render_mode: Optional[str] = None, nrobots: Optional[int] = 1):
     self.robot = Hopper()
     WalkerBaseBulletEnv.__init__(self, render_mode=render_mode, robot=self.robot)
 
 
 class Walker2DBulletEnv(WalkerBaseBulletEnv):
 
-  def __init__(self, render_mode: Optional[str] = None):
+  def __init__(self, render_mode: Optional[str] = None, nrobots: Optional[int] = 1):
     self.robot = Walker2D()
     WalkerBaseBulletEnv.__init__(self, render_mode=render_mode, robot=self.robot)
 
 
 class HalfCheetahBulletEnv(WalkerBaseBulletEnv):
 
-  def __init__(self, render_mode: Optional[str] = None):
+  def __init__(self, render_mode: Optional[str] = None, nrobots: Optional[int] = 1):
     self.robot = HalfCheetah()
     WalkerBaseBulletEnv.__init__(self, render_mode=render_mode, robot=self.robot)
 
@@ -159,14 +159,14 @@ class HalfCheetahBulletEnv(WalkerBaseBulletEnv):
 
 class AntBulletEnv(WalkerBaseBulletEnv):
 
-  def __init__(self, render_mode: Optional[str] = None):
+  def __init__(self, render_mode: Optional[str] = None, nrobots: Optional[int] = 1):
     self.robot = Ant()
     WalkerBaseBulletEnv.__init__(self, render_mode=render_mode, robot=self.robot)
 
 
 class HumanoidBulletEnv(WalkerBaseBulletEnv):
 
-  def __init__(self, render_mode: Optional[str] = None, robot=None):
+  def __init__(self, render_mode: Optional[str] = None, nrobots: Optional[int] = 1, robot=None):
     if robot is None:
       self.robot = Humanoid()
     else:
@@ -179,7 +179,7 @@ class HumanoidBulletEnv(WalkerBaseBulletEnv):
 class HumanoidFlagrunBulletEnv(HumanoidBulletEnv):
   random_yaw = True
 
-  def __init__(self, render_mode: Optional[str] = None):
+  def __init__(self, render_mode: Optional[str] = None), nrobots: Optional[int] = 1:
     self.robot = HumanoidFlagrun()
     HumanoidBulletEnv.__init__(self, render_mode=render_mode, robot=self.robot)
 
@@ -192,7 +192,7 @@ class HumanoidFlagrunBulletEnv(HumanoidBulletEnv):
 class HumanoidFlagrunHarderBulletEnv(HumanoidBulletEnv):
   random_lean = True  # can fall on start
 
-  def __init__(self, render_mode: Optional[str] = None):
+  def __init__(self, render_mode: Optional[str] = None, nrobots: Optional[int] = 1):
     self.robot = HumanoidFlagrunHarder()
     self.electricity_cost /= 4  # don't care that much about electricity, just stand up!
     HumanoidBulletEnv.__init__(self, render_mode=render_mode, robot=self.robot)
