@@ -405,4 +405,4 @@ class AntSwarm(WalkerBase):
       # Shift the robot position
       x, y, z = self.robot_body.pose().xyz()
       y += self.id * 1
-      self.robot_body.reset_position((x,y,0)) # z must be set as 0, otherwise the z is increased too!!!!
+      self.robot_body.reset_position((x,y,z))
