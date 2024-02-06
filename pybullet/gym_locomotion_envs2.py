@@ -580,8 +580,10 @@ class HalfCheetahMultiBulletEnv(MJCFMultiAgentBaseBulletEnv):
     else:
         return state, progress + joints_at_limit_cost, False, False, {"progress" : progress}    
 
-class AntSwarmBulletEnv(WalkerBaseBulletEnv):
+class AntSwarmBulletEnv(MJCFMultiAgentBaseBulletEnv):
 
+  foot_ground_object_names = set(["floor"])  # to distinguish ground and other objects
+  
   def __init__(self, render_mode: Optional[str] = None, nrobots: Optional[int] = 2):
     self.nrobots = nrobots
     self.robots = []
@@ -590,7 +592,7 @@ class AntSwarmBulletEnv(WalkerBaseBulletEnv):
     self.camera_x = 0
     self.stateId = -1
     MJCFMultiAgentBaseBulletEnv.__init__(self, render_mode=render_mode, nrobots=self.nrobots, robots=self.robots)
-    print("ByBullet Ant-v5: reward = progress + 0.01 + (torque_cost * -0.01) + (nJointLimit * -0.1)")
+    print("PyBullet AntSwarm-v0: reward = progress + 0.01 + (torque_cost * -0.01) + (nJointLimit * -0.1)")
 
   def create_single_player_scene(self, bullet_client):
     # It is weird but using multi-player is not trivial
