@@ -16,7 +16,7 @@ class WalkerBaseBulletEnv(MJCFBaseBulletEnv):
     self.walk_target_x = 1e3  # kilometer away
     self.walk_target_y = 0
     self.stateId = -1
-    MJCFBaseBulletEnv.__init__(self, render_mode=render_mode, robot=robot)
+    MJCFBaseBulletEnv.__init__(self, render_mode=render_mode, nrobots=nrobots, robot=robot)
 
 
   def create_single_player_scene(self, bullet_client):
@@ -137,9 +137,9 @@ class WalkerBaseBulletEnv(MJCFBaseBulletEnv):
 
 class HopperBulletEnv(WalkerBaseBulletEnv):
 
-  def __init__(self, render_mode: Optional[str] = None):
+  def __init__(self, render_mode: Optional[str] = None, nrobots: Optional[int] = 1):
     self.robot = Hopper()
-    WalkerBaseBulletEnv.__init__(self, render_mode=render_mode, robot=self.robot)
+    WalkerBaseBulletEnv.__init__(self, render_mode=render_mode, nrobots=nrobots, robot=self.robot)
     print("PyBullet Hopper-v5: reward = progress")
 
   def step(self, a):
@@ -183,9 +183,9 @@ class HopperBulletEnv(WalkerBaseBulletEnv):
 
 class Walker2DBulletEnv(WalkerBaseBulletEnv):
 
-  def __init__(self, render_mode: Optional[str] = None):
+  def __init__(self, render_mode: Optional[str] = None, nrobots: Optional[int] = 1):
     self.robot = Walker2D()
-    WalkerBaseBulletEnv.__init__(self, render_mode=render_mode, robot=self.robot)
+    WalkerBaseBulletEnv.__init__(self, render_mode=render_mode, nrobots=nrobots, robot=self.robot)
     print("PyBullet Walker2d-v5: reward = progress")
     self.oldz = 0
 
@@ -231,9 +231,9 @@ class Walker2DBulletEnv(WalkerBaseBulletEnv):
 
 class HalfCheetahBulletEnv(WalkerBaseBulletEnv):
 
-  def __init__(self, render_mode: Optional[str] = None):
+  def __init__(self, render_mode: Optional[str] = None, nrobots: Optional[int] = 1):
     self.robot = HalfCheetah()
-    WalkerBaseBulletEnv.__init__(self, render_mode=render_mode, robot=self.robot)
+    WalkerBaseBulletEnv.__init__(self, render_mode=render_mode, nrobots=nrobots, robot=self.robot)
     print("PyBullet Halfcheetah-v5: reward = progress + (njoint_at_limit * -0.1), terminate also when z < 0.3")
 
   def _isDone(self):
@@ -284,10 +284,10 @@ class HalfCheetahBulletEnv(WalkerBaseBulletEnv):
 
 class AntBulletEnv(WalkerBaseBulletEnv):
 
-  def __init__(self, render_mode: Optional[str] = None):
+  def __init__(self, render_mode: Optional[str] = None, nrobots: Optional[int] = 1):
     self.robot = Ant()
-    WalkerBaseBulletEnv.__init__(self, render_mode=render_mode, robot=self.robot)
-    print("ByBullet Ant-v5: reward = progress + 0.01 + (torque_cost * -0.01) + (nJointLimit * -0.1)")
+    WalkerBaseBulletEnv.__init__(self, render_mode=render_mode, nrobots=nrobots, robot=self.robot)
+    print("PyBullet Ant-v5: reward = progress + 0.01 + (torque_cost * -0.01) + (nJointLimit * -0.1)")
 
   def step(self, a):
     if not self.scene.multiplayer:  # if multiplayer, action first applied to all robots, then global step() called, then _step() for all robots with the same actions
@@ -333,9 +333,9 @@ class AntBulletEnv(WalkerBaseBulletEnv):
 
 class HumanoidBulletEnv(WalkerBaseBulletEnv):
 
-  def __init__(self, render_mode: Optional[str] = None, robot=Humanoid()):
+  def __init__(self, render_mode: Optional[str] = None, nrobots: Optional[int] = 1, robot=Humanoid()):
     self.robot = robot
-    WalkerBaseBulletEnv.__init__(self, render_mode=render_mode, robot=self.robot)
+    WalkerBaseBulletEnv.__init__(self, render_mode=render_mode, nrobots=nrobots, robot=self.robot)
     print("PyBullet Humanoid-v5: reward = progress + 1.0 + (jexcess * -10.0) + (nJLimits * -0.1) + (angleoffset * -0.1): init_range [-0.03,0.03]")
 
   def step(self, a):
@@ -400,9 +400,9 @@ class HumanoidBulletEnv(WalkerBaseBulletEnv):
 class HumanoidFlagrunBulletEnv(HumanoidBulletEnv):
   random_yaw = True
 
-  def __init__(self, render_mode: Optional[str] = None):
+  def __init__(self, render_mode: Optional[str] = None, nrobots: Optional[int] = 1):
     self.robot = HumanoidFlagrun()
-    HumanoidBulletEnv.__init__(self, render_mode=render_mode, robot=self.robot)
+    HumanoidBulletEnv.__init__(self, render_mode=render_mode, nrobots=nrobots, robot=self.robot)
 
   def create_single_player_scene(self, bullet_client):
     s = HumanoidBulletEnv.create_single_player_scene(self, bullet_client)
@@ -460,10 +460,10 @@ class HumanoidFlagrunBulletEnv(HumanoidBulletEnv):
 class HumanoidFlagrunHarderBulletEnv(HumanoidBulletEnv):
   random_lean = True  # can fall on start
 
-  def __init__(self, render_mode: Optional[str] = None):
+  def __init__(self, render_mode: Optional[str] = None, nrobots: Optional[int] = 1):
     self.robot = HumanoidFlagrunHarder()
     self.electricity_cost /= 4  # don't care that much about electricity, just stand up!
-    HumanoidBulletEnv.__init__(self, render_mode=render_mode, robot=self.robot)
+    HumanoidBulletEnv.__init__(self, render_mode=render_mode, nrobots=nrobots, robot=self.robot)
 
   def create_single_player_scene(self, bullet_client):
     s = HumanoidBulletEnv.create_single_player_scene(self, bullet_client)
