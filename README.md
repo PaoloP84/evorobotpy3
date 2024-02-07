@@ -10,7 +10,7 @@ Please use this BibTeX to cite this repository in your publications:
 @misc{evorobotpy3,
   author = {Paolo Pagliuca & Stefano Nolfi},
   title = {A tool for training robots through evolutionary and reinforcement learning methods},
-  year = {2023},
+  year = {2024},
   publisher = {GitHub},
   journal = {GitHub repository},
   howpublished = {\url{https://github.com/snolfi/evorobotpy3}},
