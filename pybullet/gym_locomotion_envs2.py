@@ -664,7 +664,31 @@ class AntSwarmBulletEnv(MJCFMultiAgentBaseBulletEnv):
       potential_old = self.potential[r]
       self.potential[r] = robot.calc_potential()
       progress += float(self.potential[r] - potential_old)
+      r += 1
     progress /= float(self.nrobots)
+    
+    # Compute distance from other robots
+    target_dist = 1.5 # Target distance!!!
+    dist = np.zeros(self.nrobots)
+    r = 0
+    while r < self.nrobots:
+      for rr in range(self.nrobots):
+        if r != rr:
+          dist[r] += np.linalg.norm([self.robots[r].body_xyz[1] - self.robots[rr].body_xyz[1], self.robots[r].body_xyz[0] - self.robots[rr].body_xyz[0]])
+      dist[r] /= float(self.nrobots - 1)
+      if dist[r] < target_dist:
+        dist[r] = target_dist
+      r += 1
+    
+    # Distance reward
+    dist_rew = 0.0
+    r = 0
+    for r in range(self.nrobots):
+      d = np.exp((target_dist - dist[r]) * 100.0)
+      if d < 1e-6:
+        d = 0.0
+      dist_rew += d
+    dist_rew /= float(self.nrobots)
 
     feet_collision_cost = 0.0
     joints_at_limit_cost = 0.0
@@ -690,6 +714,6 @@ class AntSwarmBulletEnv(MJCFMultiAgentBaseBulletEnv):
     self.HUD(state, a, done)
 
     if (self._alive < 0):
-        return state, progress + 0.01 + stall_cost + joints_at_limit_cost, True, False, {"progress" : progress}
+        return state, progress + dist_rew + 0.01 + stall_cost + joints_at_limit_cost, True, False, {"progress" : progress}
     else:
-        return state, progress + 0.01 + stall_cost + joints_at_limit_cost, False, False, {"progress" : progress}
+        return state, progress + dist_rew + 0.01 + stall_cost + joints_at_limit_cost, False, False, {"progress" : progress}

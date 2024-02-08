@@ -386,7 +386,7 @@ class HalfCheetahMulti(WalkerBase):
     if self.id > 0:
       # Shift the robot position
       x, y, z = self.robot_body.pose().xyz()
-      y += self.id * 1
+      y += self.id * 2.0
       self.robot_body.reset_position((x,y,0)) # z must be set as 0, otherwise the z is increased too!!!!
 
 class AntSwarm(WalkerBase):
@@ -395,6 +395,11 @@ class AntSwarm(WalkerBase):
   def __init__(self, robotId=0):
     WalkerBase.__init__(self, "ant.xml", "torso", action_dim=8, obs_dim=28, power=2.5)
     self.id = robotId
+    self.walk_target_x = 1e3  # kilometer away
+    self.walk_target_y = self.id * 1.5
+    self.dx = 2.0
+    self.dy = 2.0
+    self.n = 3
 
   def alive_bonus(self, z, pitch):
     return +1 if z > 0.26 else -1  # 0.25 is central sphere rad, die if it scrapes the ground
@@ -404,5 +409,12 @@ class AntSwarm(WalkerBase):
     if self.id > 0:
       # Shift the robot position
       x, y, z = self.robot_body.pose().xyz()
-      y += self.id * 1
-      self.robot_body.reset_position((x,y,z))
+      if self.id < self.n:
+        x = -self.dx
+      else:
+        x = self.dx
+      if self.id % 2 == 0:
+        y = -self.dy
+      else:
+        y = self.dy
+      self.robot_body.reset_position((x,y,z)) # z must be set as 0, otherwise the z is increased too!!!!
