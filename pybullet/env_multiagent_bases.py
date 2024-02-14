@@ -203,7 +203,7 @@ class Camera:
     lookat = [x, y, z]
     camInfo = self.env._p.getDebugVisualizerCamera()
     
-    distance = 5.0#camInfo[10]
+    distance = 5.0 * k#camInfo[10]
     pitch = -10.0 * self.nagents#camInfo[9]
     yaw = 0.0#camInfo[8]
     self.env._p.resetDebugVisualizerCamera(distance, yaw, pitch, lookat)
