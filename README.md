@@ -13,6 +13,6 @@ Please use this BibTeX to cite this repository in your publications:
   year = {2024},
   publisher = {GitHub},
   journal = {GitHub repository},
-  howpublished = {\url{https://github.com/snolfi/evorobotpy3}},
+  howpublished = {\url{https://github.com/PaoloP84/evorobotpy3}},
 }
 ```
