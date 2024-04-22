@@ -85,6 +85,7 @@ class Algo(EvoAlgo):
     def setProcess(self):
         self.loadhyperparameters()               # load hyperparameters
         self.center = np.copy(self.policy.get_trainable_flat())  # the initial centroid
+        self.avecenter = np.average(np.absolute(self.center))
         self.nparams = len(self.center)          # number of adaptive parameters
         self.cgen = 0                            # currrent generation
         self.samplefitness = zeros(self.batchSize * 2) # the fitness of the samples
@@ -105,11 +106,64 @@ class Algo(EvoAlgo):
 
     def savedata(self):
         self.save()             # save the best agent so far, the best postevaluated agent so far, and progress data across generations
+        # We save the centroid, the momentum vectors, the best fitnesses found, the generation and the number of steps performed so far
+        # Centroid
+        fname = os.path.join(self.filedir, "centerS" + str(self.seed))
+        np.save(fname, self.center)
+        # Momentum vectors
+        # m
+        fname = os.path.join(self.filedir, "mS" + str(self.seed))
+        np.save(fname, self.m)
+        # v
+        fname = os.path.join(self.filedir, "vS" + str(self.seed))
+        np.save(fname, self.v)
+        # Best fitnesses
+        fname = os.path.join(self.filedir, "bestFitS" + str(self.seed) + ".txt")
+        fp = open(fname, "w")
+        fp.write("%lf\t%lf\n" % (self.bestfit, self.bestgfit))
+        fp.close()
+        # Generation and steps
+        fname = os.path.join(self.filedir, "genAndStepsS" + str(self.seed) + ".txt")
+        fp = open(fname, "w")
+        fp.write("%d\t%d\n" % (self.cgen, self.steps))
+        fp.close()
+        # Statistics
         fname = os.path.join(self.filedir, "S" + str(self.seed) + ".fit")
         fp = open(fname, "w")   # save summary
         fp.write('Seed %d (%.1f%%) gen %d msteps %d bestfit %.2f bestgfit %.2f bestsam %.2f avgfit %.2f paramsize %.2f \n' %
              (self.seed, self.steps / float(self.maxsteps) * 100, self.cgen, self.steps / 1000000, self.bestfit, self.bestgfit, self.bfit, self.avgfit, self.avecenter))
         fp.close()
+        
+    def loaddata(self):
+        # We load the centroid, the momentum vectors, the best fitnesses found, the generation and the number of steps performed so far
+        # Centroid
+        fname = os.path.join(self.filedir, "centerS" + str(self.seed) + ".npy")
+        self.center = np.load(fname, allow_pickle=True)
+        self.avecenter = np.average(np.absolute(self.center))
+        # Momentum vectors
+        # m
+        fname = os.path.join(self.filedir, "mS" + str(self.seed) + ".npy")
+        self.m = np.load(fname, allow_pickle=True)
+        # v
+        fname = os.path.join(self.filedir, "vS" + str(self.seed) + ".npy")
+        self.v = np.load(fname, allow_pickle=True)
+        # Best solutions
+        fname = os.path.join(self.filedir, "bestS" + str(self.seed) + ".npy")
+        self.bestsol = np.load(fname, allow_pickle=True)
+        fname = os.path.join(self.filedir, "bestgS" + str(self.seed) + ".npy")
+        self.bestgsol = np.load(fname, allow_pickle=True)
+        # Best fitnesses
+        fname = os.path.join(self.filedir, "bestFitS" + str(self.seed) + ".txt")
+        fit = np.loadtxt(fname)
+        assert len(fit) == 2, "Invalid number of fitness values!!!"
+        self.bestfit = fit[0]
+        self.bestgfit = fit[1]
+        # Generation and steps
+        fname = os.path.join(self.filedir, "genAndStepsS" + str(self.seed) + ".txt")
+        genAndSteps = np.loadtxt(fname)
+        assert len(genAndSteps) == 2, "Inconsistent number of data!!!"
+        self.cgen = int(genAndSteps[0])
+        self.steps = int(genAndSteps[1])
  
     def evaluate(self):
         cseed = self.seed + self.cgen * self.batchSize  # Set the seed for current generation (master and workers have the same seed)
@@ -214,6 +268,12 @@ class Algo(EvoAlgo):
         elapsed = 0
         self.steps = 0
         print("OpenAI-ES: seed %d maxmsteps %d batchSize %d stepsize %lf noiseStdDev %lf wdecay %d symseed %d nparams %d" % (self.seed, self.maxsteps / 1000000, self.batchSize, self.stepsize, self.noiseStdDev, self.wdecay, self.symseed, self.nparams))
+        
+        # Load data (if any)
+        try:
+            self.loaddata()
+        except:
+            print("No data to be loaded or some errors occurred!!!")
 
         while (self.steps < self.maxsteps):
 

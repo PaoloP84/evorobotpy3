@@ -397,8 +397,8 @@ class AntSwarm(WalkerBase):
     self.id = robotId
     self.walk_target_x = 1e3  # kilometer away
     self.walk_target_y = self.id * 1.5
-    self.dx = 2.0
-    self.dy = 2.0
+    self.dx = 4.0
+    self.dy = 4.0
     self.n = 3
 
   def alive_bonus(self, z, pitch):

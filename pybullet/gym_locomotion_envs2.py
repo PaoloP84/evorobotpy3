@@ -7,6 +7,8 @@ from robot_locomotors2 import Hopper, Walker2D, HalfCheetah, Ant, Humanoid, Huma
 from typing import TYPE_CHECKING, List, Optional
 from .env_multiagent_bases import MJCFMultiAgentBaseBulletEnv
 
+CSEED = 30
+
 class WalkerBaseBulletEnv(MJCFBaseBulletEnv):
 
   def __init__(self, render_mode: Optional[str] = None, nrobots: Optional[int] = 1, robot=None):
@@ -628,6 +630,12 @@ class AntSwarmBulletEnv(MJCFMultiAgentBaseBulletEnv):
     if (self.stateId < 0):
       self.stateId = self._p.saveState()
       #print("saving state self.stateId:",self.stateId)
+      
+    fp = open("robotPositionsS" + str(CSEED) + ".txt", "w")
+    for robot in self.robots:
+      fp.write("%lf %lf " % (robot.body_xyz[0], robot.body_xyz[1]))
+    fp.write("\n")
+    fp.close()
 
     return r, {}
 
@@ -660,40 +668,61 @@ class AntSwarmBulletEnv(MJCFMultiAgentBaseBulletEnv):
 
     r = 0
     progress = 0.0
+    robotProgress = 0.0
+    #prog_fp = open("progressS" + str(CSEED) + ".txt", "a")
     for robot in self.robots:
       potential_old = self.potential[r]
       self.potential[r] = robot.calc_potential()
       progress += float(self.potential[r] - potential_old)
+      #prog_fp.write("%lf\t" % float(self.potential[r] - potential_old))
       r += 1
     progress /= float(self.nrobots)
+    #prog_fp.write("\n")
+    #prog_fp.close()
     
     # Compute distance from other robots
     target_dist = 1.5 # Target distance!!!
     dist = np.zeros(self.nrobots)
+    #dist_fp = open("distanceS" + str(CSEED) + ".txt", "a")
+    num_robots_at_target = 0
     r = 0
     while r < self.nrobots:
       for rr in range(self.nrobots):
         if r != rr:
-          dist[r] += np.linalg.norm([self.robots[r].body_xyz[1] - self.robots[rr].body_xyz[1], self.robots[r].body_xyz[0] - self.robots[rr].body_xyz[0]])
+          cdist = np.linalg.norm([self.robots[r].body_xyz[1] - self.robots[rr].body_xyz[1], self.robots[r].body_xyz[0] - self.robots[rr].body_xyz[0]])
+          dist[r] += (-abs(target_dist - cdist))
       dist[r] /= float(self.nrobots - 1)
-      if dist[r] < target_dist:
-        dist[r] = target_dist
+      if dist[r] == target_dist:
+        num_robots_at_target += 1
+      #dist_fp.write("%lf\t" % dist[r])
       r += 1
+    #dist_fp.write("\n")
+    #dist_fp.close()
+    
+    #rob_fp = open("robots_at_target_distS" + str(CSEED) + ".txt", "a")
+    #rob_fp.write("%d\n" % num_robots_at_target)
+    #rob_fp.close()
     
     # Distance reward
     dist_rew = 0.0
     r = 0
+    #dist_fp_2 = open("dist_rewS" + str(CSEED) + ".txt", "a")
     for r in range(self.nrobots):
-      d = np.exp((target_dist - dist[r]) * 100.0)
+      d = np.exp(100 * dist[r])
       if d < 1e-6:
         d = 0.0
       dist_rew += d
+      #dist_fp_2.write("%lf\t" % d)
     dist_rew /= float(self.nrobots)
+    #dist_fp_2.write("\n")
+    #dist_fp_2.close()
 
     feet_collision_cost = 0.0
     joints_at_limit_cost = 0.0
     stall_cost = 0.0
     ac_idx = 0
+    #stall_fp = open("stall_costS" + str(CSEED) + ".txt", "a")
+    #joint_fp = open("joints_at_limit_costS" + str(CSEED) + ".txt", "a")
     for robot in self.robots:
       for i, f in enumerate(
           robot.feet
@@ -705,15 +734,27 @@ class AntSwarmBulletEnv(MJCFMultiAgentBaseBulletEnv):
         else:
           robot.feet_contact[i] = 0.0
 
-      stall_cost = -0.01 * float(np.square(a[ac_idx:(ac_idx+ac_len)]).mean())
+      stall_cost += -0.01 * float(np.square(a[ac_idx:(ac_idx+ac_len)]).mean())
       ac_idx += ac_len
       joints_at_limit_cost += float(-0.1 * robot.joints_at_limit)
+      #stall_fp.write("%lf\t" % (-0.01 * float(np.square(a[ac_idx:(ac_idx+ac_len)]).mean())))
+      #joint_fp.write("%lf\t" % float(-0.1 * robot.joints_at_limit))
     joints_at_limit_cost /= float(self.nrobots)
     stall_cost /= float(self.nrobots)
- 
+    #stall_fp.write("\n")
+    #stall_fp.close()
+    #joint_fp.write("\n")
+    #joint_fp.close()
+    """
+    fp = open("robotPositionsS" + str(CSEED) + ".txt", "a")
+    for robot in self.robots:
+      fp.write("%lf %lf " % (robot.body_xyz[0], robot.body_xyz[1]))
+    fp.write("\n")
+    fp.close()
+    """
     self.HUD(state, a, done)
 
     if (self._alive < 0):
-        return state, progress + dist_rew + 0.01 + stall_cost + joints_at_limit_cost, True, False, {"progress" : progress}
+        return state, progress + dist_rew + stall_cost + joints_at_limit_cost, True, False, {"progress" : progress}
     else:
-        return state, progress + dist_rew + 0.01 + stall_cost + joints_at_limit_cost, False, False, {"progress" : progress}
+        return state, progress + dist_rew + stall_cost + joints_at_limit_cost, False, False, {"progress" : progress}
