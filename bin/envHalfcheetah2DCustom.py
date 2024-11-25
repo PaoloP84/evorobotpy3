@@ -501,10 +501,10 @@ class customEnv(gym.Env):
 
         # Flags whether the robot is on the ground (i.e., at least one segment touches the ground)
         self.onGround = False
-        
+        """
         if self.render_mode == "human":
             self.render()
-
+        """
         return self.step(np.array(fakeAction))[0], {} # self._step
 
     def step(self, action): # _step
@@ -549,7 +549,7 @@ class customEnv(gym.Env):
         self.scroll = pos.x - VIEWPORT_W/SCALE/5
 
         shaping  = 130*pos[0]/SCALE   # moving forward is a way to receive reward (normalized to get 300 on completion)
-        shaping -= 5.0*abs(state[0])  # keep head straight, other than that and falling, any behavior is unpunished
+        #shaping -= 5.0*abs(state[0])  # keep head straight, other than that and falling, any behavior is unpunished
 
         reward = 0
         progress = 0.0
@@ -581,7 +581,7 @@ class customEnv(gym.Env):
                 if self.test:
                     print("### LOWEST UNDER THRESHOLD ###")
                     print(lowest, TERRAIN_HEIGHT)
-                done = True
+                terminated = True
 
         # Check stop conditions
         # Height check
@@ -614,7 +614,9 @@ class customEnv(gym.Env):
         # Now check if the torso touches the ground
         if self.torso.ground_contact:
             nTouchSegs += 1
-        reward -= (2.0 * nTouchSegs) # Penalty for other segments than feet touching the ground
+        #reward -= (2.0 * nTouchSegs) # Penalty for other segments than feet touching the ground
+        if nTouchSegs > 0:
+            terminated = True
 
         # Compute joints at limit (to check the use of angle instead of position).
         # Definition taken from robot_locomotors.py and robot_bases.py files of pybullet
@@ -635,10 +637,10 @@ class customEnv(gym.Env):
                 print(self.cstep, self.nsteps, (self.nsteps - self.cstep))
 
         self.timer += 1
-        
+        """
         if self.render_mode == "human":
             self.render()
-        
+        """
         return np.array(state, dtype=np.float32), reward, terminated, False, {}
 
     def render(self, mode='human', close=False): # _render

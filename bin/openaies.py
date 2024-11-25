@@ -18,6 +18,7 @@ from utils import ascendent_sort
 import sys
 import os
 import configparser
+import copy
 
 # Parallel implementation of Open-AI-ES algorithm developed by Salimans et al. (2017)
 # the workers evaluate a fraction of the population in parallel
@@ -26,6 +27,7 @@ import configparser
 class Algo(EvoAlgo):
     def __init__(self, env, policy, seed, fileini, filedir):
         EvoAlgo.__init__(self, env, policy, seed, fileini, filedir)
+        self.testmode = 0
 
     def loadhyperparameters(self):
 
@@ -40,6 +42,7 @@ class Algo(EvoAlgo):
             self.wdecay = 0
             self.symseed = 1
             self.saveeach = 60
+            self.testmode = 0
             options = config.options("ALGO")
             for o in options:
                 found = 0
@@ -64,6 +67,9 @@ class Algo(EvoAlgo):
                 if o == "saveeach":
                     self.saveeach = config.getint("ALGO","saveeach")
                     found = 1
+                if o == "testmode":
+                    self.testmode = config.getint("ALGO","testmode")
+                    found = 1
 
                 if found == 0:
                     print("\033[1mOption %s in section [ALGO] of %s file is unknown\033[0m" % (o, self.fileini))
@@ -75,7 +81,7 @@ class Algo(EvoAlgo):
                     print("wdecay [0/2]              : weight decay (default 0), 1 = L1, 2 = L2")
                     print("symseed [0/1]             : same environmental seed to evaluate symmetrical samples [default 1]")
                     print("saveeach [integer]        : save file every N minutes (default 60)")
-
+                    print("testmode [0/1]            : test mode (default 0), 1 = functional network test")
                     sys.exit()
         else:
             print("\033[1mERROR: configuration file %s does not exist\033[0m" % (self.fileini))
@@ -85,6 +91,9 @@ class Algo(EvoAlgo):
     def setProcess(self):
         self.loadhyperparameters()               # load hyperparameters
         self.center = np.copy(self.policy.get_trainable_flat())  # the initial centroid
+        # Save initial centroid
+        fname = os.path.join(self.filedir, "initCenterS" + str(self.seed))
+        np.save(fname, self.center)
         self.avecenter = np.average(np.absolute(self.center))
         self.nparams = len(self.center)          # number of adaptive parameters
         self.cgen = 0                            # currrent generation
@@ -273,7 +282,15 @@ class Algo(EvoAlgo):
         try:
             self.loaddata()
         except:
-            print("No data to be loaded or some errors occurred!!!")
+            #print("No data to be loaded or some errors occurred!!!")
+            pass
+            
+        # Set the frequency at which centroid will be stored
+        saveCenterFreq = int(self.maxsteps / 10) # Can be tuned
+        # Moment at which center will be saved
+        saveCenterSteps = saveCenterFreq
+        # Counter
+        saveCenterCnt = 1
 
         while (self.steps < self.maxsteps):
 
@@ -287,6 +304,15 @@ class Algo(EvoAlgo):
             if ((time.time() - last_save_time) > (self.saveeach * 60)):
                 self.savedata()                       # save data on files
                 last_save_time = time.time()
+                
+            if self.steps >= saveCenterSteps:
+                # Save centroid
+                fname = os.path.join(self.filedir, "centerS" + str(self.seed) + "_" + str(saveCenterCnt))
+                np.save(fname, self.center)
+                # Update moment
+                saveCenterSteps += saveCenterFreq
+                # Update counter
+                saveCenterCnt += 1
 
             if self.normalizationdatacollected:
                 self.policy.nn.updateNormalizationVectors()  # update the normalization vectors with the new data collected
@@ -300,4 +326,69 @@ class Algo(EvoAlgo):
         # print simulation time
         end_time = time.time()
         print('Simulation time: %dm%ds ' % (divmod(end_time - start_time, 60)))
-
+        
+    def test(self, testfile):
+        self.loadhyperparameters()
+        if self.testmode == 0:
+            EvoAlgo.test(self, testfile)
+        else:
+            self.funcTest(testfile)
+        
+    def funcTest(self, testfile):  # postevaluate an agent 
+        print("Functional network test")
+        if testfile is not None:
+            fname = os.path.join(self.filedir, testfile)
+            if (self.policy.normalize == 0):
+                bestgeno = np.load(fname)
+            else:
+                geno = np.load(fname)
+                for i in range(self.policy.ninputs * 2):
+                    self.policy.normvector[i] = geno[self.policy.nparams + i]
+                bestgeno = geno[0:self.policy.nparams]
+                self.policy.nn.setNormalizationVectors()
+        else:
+            print("Cannot run functional network test without passing a genotype file!!!")
+            sys.exit()
+        if (self.policy.nttrials > 0):
+            ntrials = self.policy.nttrials
+        else:
+            ntrials = self.policy.ntrials
+        # Output file
+        outfile = os.path.join(self.filedir, "funcTestS" + str(self.policy.get_seed) + ".txt")
+        fp = open(outfile, "w")
+        # Test the original genotype first
+        self.policy.set_trainable_flat(bestgeno)
+        fp.write("-1\t")
+        avgf = 0.0
+        for t in range(ntrials):
+            eval_rews, eval_length = self.policy.rollout(1, seed=self.policy.get_seed + 100000 + t)
+            fp.write("%lf\t" % eval_rews)
+            avgf += eval_rews
+        avgf /= float(ntrials)
+        fp.write("\n")
+        print("Postevauation (original genotype): Average Fitness %.2f" % avgf)
+        # Get number of inputs, hiddens and outputs of the network
+        ninputs = self.policy.ninputs
+        nhiddens = self.policy.nhiddens
+        noutputs = self.policy.noutputs
+        # Now test the functional network
+        for h in range(nhiddens):
+            geno = copy.deepcopy(bestgeno)
+            # Set bias to 0
+            geno[h] = 0.0
+            # We need to set all the incoming and outgoing weights to 0
+            for i in range(ninputs):
+                geno[nhiddens + noutputs + (ninputs * h) + i] = 0.0
+            for i in range(noutputs):
+                geno[nhiddens + noutputs + (ninputs * nhiddens) + (nhiddens * i)] = 0.0
+            self.policy.set_trainable_flat(bestgeno) 
+            fp.write("%d\t" % h)
+            avgf = 0.0
+            for t in range(ntrials):
+                eval_rews, eval_length = self.policy.rollout(1, seed=self.policy.get_seed + 100000 + t)
+                fp.write("%lf\t" % eval_rews)
+                avgf += eval_rews
+            avgf /= float(ntrials)
+            print("Postevauation (removed hidden %d): Average Fitness %.2f" % (h, avgf))
+            fp.write("\n")
+        fp.close()

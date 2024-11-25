@@ -332,11 +332,11 @@ class customEnv(gym.Env):
         # Copy of default body params scaled by morphological factors
         bodyParams = np.zeros(len(self.body_param), dtype=np.float64)
         for i in range(len(self.body_param)):
-            bodyParams[i] = self.computeFactor((self.body_param[i] * U), i)
+            bodyParams[i] = self.computeFactor(self.body_param[i], i)
 
         # Compute the leg heights
-        bleg_h = bodyParams[1] + bodyParams[5] + bodyParams[7] + bodyParams[9]
-        fleg_h = bodyParams[1] + bodyParams[11] + bodyParams[13] + bodyParams[15]
+        bleg_h = bodyParams[1] * U + bodyParams[5] * U + bodyParams[7] * U + bodyParams[9] * U
+        fleg_h = bodyParams[1] * U + bodyParams[11] * U + bodyParams[13] * U + bodyParams[15] * U
         init_x = TERRAIN_STEP*TERRAIN_STARTPAD/2
         # We use the longest leg to set the initial height of the cheetah
         max_h = bleg_h
@@ -348,8 +348,8 @@ class customEnv(gym.Env):
         self.joints = []
 
         # Torso sizes
-        torsoWidth = bodyParams[0]
-        torsoHeight = bodyParams[1]
+        torsoWidth = bodyParams[0] * U
+        torsoHeight = bodyParams[1] * U
         torsoAngle = 0.0 + self.computeFactor(math.pi / 4.0, (self.nsizes + self.nangleranges))
         # Create first segment (i.e., torso) out of the for loop
         self.torso = self.world.CreateDynamicBody(
@@ -367,8 +367,8 @@ class customEnv(gym.Env):
         self.torso.ground_contact = False
         
         # Head sizes
-        headWidth = bodyParams[2]
-        headHeight = bodyParams[3]
+        headWidth = bodyParams[2] * U
+        headHeight = bodyParams[3] * U
         headAngle = math.pi / 4.0 + self.computeFactor(math.pi / 4.0, (self.nsizes + self.nangleranges) + 1)
 
         # Create head
@@ -414,8 +414,8 @@ class customEnv(gym.Env):
         # Create front and back segments (thigh, shin and foot)
         for i in [-1,+1]:
             # Thigh
-            thighWidth = bodyParams[bi]
-            thighHeight = bodyParams[bi + 1]
+            thighWidth = bodyParams[bi] * U
+            thighHeight = bodyParams[bi + 1] * U
             # Joint ranges
             thighLowerAngle = self.joint_param[ji] * (1.0 + self.computeFactor(self.rate, h))
             thighUpperAngle = self.joint_param[ji + 1] * (1.0 + self.computeFactor(self.rate, h + 1))
@@ -462,8 +462,8 @@ class customEnv(gym.Env):
             z += 1
             w += 1
             # Shin
-            shinWidth = bodyParams[bi]
-            shinHeight = bodyParams[bi + 1]
+            shinWidth = bodyParams[bi] * U
+            shinHeight = bodyParams[bi + 1] * U
             # Joint ranges
             shinLowerAngle = self.joint_param[ji] * (1.0 + self.computeFactor(self.rate, h))
             shinUpperAngle = self.joint_param[ji + 1] * (1.0 + self.computeFactor(self.rate, h + 1))
@@ -510,8 +510,8 @@ class customEnv(gym.Env):
             z += 1
             w += 1
             # Foot
-            footWidth = bodyParams[bi]
-            footHeight = bodyParams[bi + 1]
+            footWidth = bodyParams[bi] * U
+            footHeight = bodyParams[bi + 1] * U
             # Joint ranges
             footLowerAngle = self.joint_param[ji] * (1.0 + self.computeFactor(self.rate, h))
             footUpperAngle = self.joint_param[ji + 1] * (1.0 + self.computeFactor(self.rate, h + 1))
@@ -570,10 +570,10 @@ class customEnv(gym.Env):
 
         # Flags whether the robot is on the ground (i.e., at least one segment touches the ground)
         self.onGround = False
-        
+        """
         if self.render_mode == "human":
             self.render()
-
+        """
         return self.step(np.array(fakeAction))[0], {} # self._step
 
     def step(self, action): # _step
@@ -618,7 +618,7 @@ class customEnv(gym.Env):
         self.scroll = pos.x - VIEWPORT_W/SCALE/5
 
         shaping  = 130*pos[0]/SCALE   # moving forward is a way to receive reward (normalized to get 300 on completion)
-        shaping -= 5.0*abs(state[0])  # keep head straight, other than that and falling, any behavior is unpunished
+        #shaping -= 5.0*abs(state[0])  # keep head straight, other than that and falling, any behavior is unpunished
 
         reward = 0
         progress = 0.0
@@ -650,7 +650,7 @@ class customEnv(gym.Env):
                 if self.test:
                     print("### LOWEST UNDER THRESHOLD ###")
                     print(lowest, TERRAIN_HEIGHT)
-                done = True
+                terminated = True
 
         # Check stop conditions
         # Height check
@@ -683,7 +683,9 @@ class customEnv(gym.Env):
         # Now check if the torso touches the ground
         if self.torso.ground_contact:
             nTouchSegs += 1
-        reward -= (2.0 * nTouchSegs) # Penalty for other segments than feet touching the ground
+        #reward -= (2.0 * nTouchSegs) # Penalty for other segments than feet touching the ground
+        if nTouchSegs > 0:
+            terminated = True
 
         # Compute joints at limit (to check the use of angle instead of position).
         # Definition taken from robot_locomotors.py and robot_bases.py files of pybullet
@@ -704,10 +706,10 @@ class customEnv(gym.Env):
                 print(self.cstep, self.nsteps, (self.nsteps - self.cstep))
 
         self.timer += 1
-        
+        """
         if self.render_mode == "human":
             self.render()
-        
+        """
         return np.array(state, dtype=np.float32), reward, terminated, False, {}
 
     def render(self, mode='human', close=False): # _render

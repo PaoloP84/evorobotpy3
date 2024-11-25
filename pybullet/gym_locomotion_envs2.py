@@ -593,6 +593,12 @@ class AntSwarmBulletEnv(MJCFMultiAgentBaseBulletEnv):
       self.robots.append(AntSwarm(robotId=r))
     self.camera_x = 0
     self.stateId = -1
+    self.origFitId = 0
+    self.fitId = 0
+    self.seq = 0
+    self.sumComp = 0
+    self.cstep = 0 # Step counter
+    self.nsteps = 1000
     MJCFMultiAgentBaseBulletEnv.__init__(self, render_mode=render_mode, nrobots=self.nrobots, robots=self.robots)
     print("PyBullet AntSwarm-v0: reward = progress + 0.01 + (torque_cost * -0.01) + (nJointLimit * -0.1)")
 
@@ -631,15 +637,134 @@ class AntSwarmBulletEnv(MJCFMultiAgentBaseBulletEnv):
       self.stateId = self._p.saveState()
       #print("saving state self.stateId:",self.stateId)
       
-    fp = open("robotPositionsS" + str(CSEED) + ".txt", "w")
-    for robot in self.robots:
-      fp.write("%lf %lf " % (robot.body_xyz[0], robot.body_xyz[1]))
-    fp.write("\n")
-    fp.close()
+    # Reset step counter
+    self.cstep = 0
+    
+    # Reset fitness id (useless when no sequential fitnesses are used)
+    self.fitId = self.origFitId
 
     return r, {}
-
+    
+  def setNSteps(self, nsteps):
+    self.nsteps = nsteps
+    
+  def setFitness(self, fit_id, seq=None, sumComp=None):
+    self.origFitId = fit_id # Backup (in case of sequential fitnesses)
+    self.fitId = fit_id
+    if seq is not None:
+      self.seq = seq
+    if sumComp is not None:
+      self.sumComp = sumComp
+    
+  def calcProgress(self, robot, i):
+    potential_old = self.potential[i]
+    self.potential[i] = robot.calc_potential()
+    progress = float(self.potential[i] - potential_old)
+    return progress
+    
+  def calcStallCost(self, a):
+    stall_cost = -0.01 * float(np.square(a).mean())
+    return stall_cost
+    
+  def jointAtLimitCost(self, robot):
+    joints_at_limit_cost = float(-0.1 * robot.joints_at_limit)
+    return joints_at_limit_cost
+    
+  def calcDist(self, robot, i):
+    dist = 0.0
+    epsilon = 0.01 # Can be tuned
+    # Target distance
+    target_dist = 1.5 # Can be tuned
+    # Robot average distance from others
+    avg_dist = 0.0
+    for r in range(self.nrobots):
+      if r != i:
+        cdist = np.linalg.norm([self.robots[i].body_xyz[1] - self.robots[r].body_xyz[1], self.robots[i].body_xyz[0] - self.robots[r].body_xyz[0]])
+        avg_dist += abs(target_dist - cdist)
+    avg_dist /= float(self.nrobots - 1)
+    if self.fitId == 0:
+      # Default is exponential
+      dist = np.exp(-100.0 * avg_dist)
+    elif self.fitId == 1:
+      # Logarithmic
+      dist = -np.log(avg_dist + epsilon)
+    else:
+      # Fractional
+      dist = 1.0 / (avg_dist + epsilon)
+    return dist
+     
+  def getFitness(self, robot, i, action):
+    rew = 0.0
+    progress = self.calcProgress(robot, i)
+    stall_cost = self.calcStallCost(action)
+    joints_at_limit_cost = self.jointAtLimitCost(robot)
+    dist_rew = self.calcDist(robot, i)
+    if self.seq:
+      if self.cstep < int(self.nsteps / 2):
+        rew = progress + stall_cost + joints_at_limit_cost
+      else:
+        rew = dist_rew + stall_cost + joints_at_limit_cost
+    else:
+      if self.sumComp:
+        rew = progress + dist_rew + stall_cost + joints_at_limit_cost
+      else:
+        rew = dist_rew + stall_cost + joints_at_limit_cost
+    return rew
+    
   def step(self, a):
+    ac_len = int(len(a) / self.nrobots)
+    if not self.scene.multiplayer:  # if multiplayer, action first applied to all robots, then global step() called, then _step() for all robots with >
+      ac_idx = 0
+      for robot in self.robots:
+        robot.apply_action(a[ac_idx:(ac_idx+ac_len)])
+        ac_idx += ac_len
+      self.scene.global_step()
+
+    state = []
+    for robot in self.robots:
+      state.append(robot.calc_state())  # also calculates self.joints_at_limit
+    state = np.concatenate(state, axis=0)
+
+    self._alive = 1
+    for robot in self.robots:
+        alive = float(
+        robot.alive_bonus(
+            state[0] + robot.initial_z,
+            robot.body_rpy[1]))  # state[0] is body height above ground, body_rpy[1] is pitch
+        if alive < 0:
+           self._alive = -1
+    done = self._isDone()
+    if not np.isfinite(state).all():
+      print("~INF~", state)
+      done = True
+
+    reward = 0.0
+    ac_idx = 0
+    r = 0
+    for robot in self.robots:
+      for i, f in enumerate(
+          robot.feet
+      ):  # TODO: Maybe calculating feet contacts could be done within the robot code
+        contact_ids = set((x[2], x[4]) for x in f.contact_list())
+        #print("CONTACT OF '%d' WITH %d" % (contact_ids, ",".join(contact_names)) )
+        if (self.ground_ids & contact_ids):
+          robot.feet_contact[i] = 1.0
+        else:
+          robot.feet_contact[i] = 0.0
+      # Calculate fitness
+      reward += self.getFitness(robot, r, a[ac_idx:(ac_idx+ac_len)])
+      ac_idx += ac_len
+      r += 1
+    reward /= float(self.nrobots)
+    
+    self.HUD(state, a, done)
+
+    if (self._alive < 0):
+        return state, reward, True, False, {}
+    else:
+        return state, reward, False, False, {}
+
+  def stepOld(self, a):
     ac_len = int(len(a) / self.nrobots)
     if not self.scene.multiplayer:  # if multiplayer, action first applied to all robots, then global step() called, then _step() for all robots with >
       ac_idx = 0

@@ -58,8 +58,6 @@ START_H = 75/SCALE
 VIEWPORT_W = 1280
 VIEWPORT_H = 640
 
-# Number of agents
-NUM_AGENTS = 2
 # Number of objects
 NUM_OBJECTS = 1
 # Sizes of agents and targets
@@ -78,7 +76,7 @@ MAX_VEL = 0.2
 MAX_ROT = math.pi / 20.0
 MAX_DIFF = 2.0 * MAX_VEL
 # Field of view (angle)
-FOV = 2.0 * math.pi# / 2.0
+FOV = math.pi / 2.0
 # Number of sectors
 NUM_SECTORS = 6
 
@@ -124,20 +122,18 @@ class customEnv(gym.Env):
         "render_fps": FPS,
     }
 
-    def __init__(self, render_mode: Optional[str] = None, nagents: Optional[int] = NUM_AGENTS):
+    def __init__(self, render_mode: Optional[str] = None):
         self.seed()
         self.viewer = None
 
         self.world = Box2D.b2World(gravity=[0.0,0.0], doSleep=True) # Gravity is set to 0 in this environment (game)
         self.arena = None
         self.target = []
-        self.objects = []
+        self.object = None
         self.objectDensity = OBJECT_DENSITY
-        self.agents = []
+        self.agent = None
         self.agentDensity = AGENT_DENSITY
         self.drawlist = []
-        # Number of agents
-        self.nagents = nagents
 
         self.prev_shaping = None
 
@@ -161,7 +157,7 @@ class customEnv(gym.Env):
         self.nsteps = 1000
         
         # Number of observations
-        self.ob_len = (2 * NUM_SECTORS) + 1 # For each sector the proportion of target/agent detected + blue color + red color
+        self.ob_len = NUM_SECTORS + 1# For each sector the proportion of target detected + ground sensor
         # Number of actions
         self.ac_len = 2 # left and right wheel speeds
 
@@ -186,12 +182,10 @@ class customEnv(gym.Env):
         for f in self.arena:
             self.world.DestroyBody(f)
         self.arena = []
-        for obj in self.objects:
-            self.world.DestroyBody(obj)
-        self.objects = []
-        for agent in self.agents:
-            self.world.DestroyBody(agent)
-        self.agents = []
+        self.world.DestroyBody(self.object)
+        self.object = None
+        self.world.DestroyBody(self.agent)
+        self.agent = None
         # Maybe useless
         self.drawlist = []
 
@@ -253,11 +247,11 @@ class customEnv(gym.Env):
         self.arena.append(topWall)
         
     # Return distance and angle from another object
-    def distanceAndAngle(self, agentId, other, radius):
-        mx, my = self.agents[agentId].position
+    def distanceAndAngle(self, other, radius):
+        mx, my = self.agent.position
         ox, oy = other.position
         d = math.sqrt(math.pow((mx - ox), 2) + math.pow((my - oy), 2)) - AGENT_RADIUS - radius
-        a = math.atan2((oy - my), (ox - mx)) - self.agents[agentId].angle
+        a = math.atan2((oy - my), (ox - mx)) - self.agent.angle
         # Set angle in range [-pi,pi]
         a = setAngleInRange(a)
         if abs(d) < 1e-6:
@@ -266,8 +260,8 @@ class customEnv(gym.Env):
             a = 0.0
         return d, a
         
-    def calcAngleBetweenTangents(self, agentId, other, radius, angle):
-        mx, my = self.agents[agentId].position
+    def calcAngleBetweenTangents(self, other, radius, angle):
+        mx, my = self.agent.position
         ox, oy = other.position
         # Compute tangent points
         p1x = ox + radius * math.cos(angle + math.pi / 2.0)
@@ -282,9 +276,9 @@ class customEnv(gym.Env):
         ang = math.atan(tan_ang)
         return ang
 
-    def calcSector(self, agentId, other, radius, relAngle):
+    def calcSector(self, other, radius, relAngle):
         # Compute the angle between tangent rects to the other object
-        ang = self.calcAngleBetweenTangents(agentId, other, radius, relAngle)
+        ang = self.calcAngleBetweenTangents(other, radius, relAngle)
         # Compute extremes and set in boundaries if necessary
         minAng = relAngle - ang
         if minAng < -FOV / 2.0:
@@ -382,9 +376,6 @@ class customEnv(gym.Env):
 
     def setNSteps(self, nsteps):
         self.nsteps = nsteps
-        
-    def setNAgents(self, nagents):
-        self.nagents = nagents
 
     def reset(self, seed=None):
         self._destroy()
@@ -398,36 +389,33 @@ class customEnv(gym.Env):
         self._generate_arena()
 
         # Agents
-        self.agents = []
         positions = []
-        for i in range(self.nagents):
-            ok = False
-            cpos = None
-            while not ok:
-                px = self.np_random.uniform(START_W + 50 / SCALE, START_W + (ARENA_WIDTH - 50)/SCALE)
-                py = self.np_random.uniform(START_H + 50 / SCALE, START_H + (ARENA_HEIGHT - 50)/SCALE)
-                cpos = (px, py)
-                ok = True
-                # Check distance from objects
-                for opos in positions:
-                    dist = math.sqrt(math.pow((cpos[0] - opos[0]), 2.0) + math.pow((cpos[1] - opos[1]), 2.0))
-                    if dist <= (150 / SCALE):
-                        ok = False
-            positions.append(cpos)
-            px, py = cpos
-            ang = self.np_random.uniform(-math.pi, math.pi)
-            agent = self.world.CreateDynamicBody(
-                position=(px, py),
-                angle=ang,
-                fixtures = fixtureDef(shape = circleShape(radius=AGENT_RADIUS), density=self.agentDensity, restitution=1.0),
-                fixedRotation = False
-                )
-            # Set color to blue
-            agent.color1 = (0,0,255)
-            agent.color2 = (0,0,255)
-            agent.linearDamping = AGENT_DAMPING
-            agent.angularDamping = AGENT_DAMPING
-            self.agents.append(agent)
+        ok = False
+        cpos = None
+        while not ok:
+            px = self.np_random.uniform(START_W + 50 / SCALE, START_W + (ARENA_WIDTH - 50)/SCALE)
+            py = self.np_random.uniform(START_H + 50 / SCALE, START_H + (ARENA_HEIGHT - 50)/SCALE)
+            cpos = (px, py)
+            ok = True
+            # Check distance from objects
+            for opos in positions:
+                dist = math.sqrt(math.pow((cpos[0] - opos[0]), 2.0) + math.pow((cpos[1] - opos[1]), 2.0))
+                if dist <= (150 / SCALE):
+                    ok = False
+        positions.append(cpos)
+        px, py = cpos
+        ang = self.np_random.uniform(-math.pi, math.pi)
+        self.agent = self.world.CreateDynamicBody(
+            position=(px, py),
+            angle=ang,
+            fixtures = fixtureDef(shape = circleShape(radius=AGENT_RADIUS), density=self.agentDensity, restitution=1.0),
+            fixedRotation = False
+        )
+        # Set color to blue
+        self.agent.color1 = (0,0,255)
+        self.agent.color2 = (0,0,255)
+        self.agent.linearDamping = AGENT_DAMPING
+        self.agent.angularDamping = AGENT_DAMPING
 
         # Object
         ok = False
@@ -444,18 +432,16 @@ class customEnv(gym.Env):
         positions.append(cpos)
         self.target = cpos
         # Create a small cylinder at the center of the target area
-        self.objects = []
-        obj = self.world.CreateStaticBody(
+        self.object = self.world.CreateStaticBody(
             position=(px,py),
             angle=0.0,
             fixtures = fixtureDef(shape = circleShape(radius=OBJECT_RADIUS), friction=0.0, density=self.objectDensity, restitution=1.0)
-            )
-        obj.linearVelocity = (0,0)
-        obj.color1 = (255,0,0)
-        obj.color2 = (0,0,0)
-        self.objects.append(obj)
+        )
+        self.object.linearVelocity = (0,0)
+        self.object.color1 = (255,0,0)
+        self.object.color2 = (0,0,0)
         
-        self.drawlist = self.arena + self.objects + self.agents
+        self.drawlist = self.arena + [self.object] + [self.agent]
 
         # step
         self.cstep = 0
@@ -466,109 +452,67 @@ class customEnv(gym.Env):
         return self.getObs(), {}
 
     def step(self, action): # _step
-        # Apply actions
-        for i in range(self.nagents):
-            act = []
-            # Agent position
-            px, py = self.agents[i].position
-            if i == 0:
-                act = action[0:self.ac_len]
-            else:
-                act = action[self.ac_len:]
-            # Compute "motors" (i.e., wheel speeds)
-            motorLeft = MAX_VEL * float(act[0])
-            motorRight = MAX_VEL * float(act[1])
-            # Compute the agent motion
-            # Difference between two motors
-            diff = motorLeft - motorRight
-            # Get the absolute value
-            absdiff = abs(diff)
-            # Compute the rotation
-            rot = MAX_ROT * absdiff / MAX_DIFF
-            # Get the angle
-            angle = self.agents[i].angle
-            # Update angle based on difference (negative -> turn right, positive -> turn left)
+        # Agent position
+        px, py = self.agent.position
+        # Compute "motors" (i.e., wheel speeds)
+        motorLeft = MAX_VEL * float(action[0])
+        motorRight = MAX_VEL * float(action[1])
+        # Compute the agent motion
+        # Difference between two motors
+        diff = motorLeft - motorRight
+        # Get the absolute value
+        absdiff = abs(diff)
+        # Compute the rotation
+        rot = MAX_ROT * absdiff / MAX_DIFF
+        # Get the angle
+        angle = self.agent.angle
+        # Update angle based on difference (negative -> turn right, positive -> turn left)
+        if diff < 0.0:
+            # If the difference is negative (i.e., right motor > left motor), the robot turns left
+            angle += rot
+        elif diff > 0.0:
+            # If the difference is positive (i.e., left motor > right motor), the robot turns right
+            angle -= rot
+        # Set angle in range [-180°,180°]
+        angle = setAngleInRange(angle)
+        # Average velocity
+        avgVel = (motorLeft + motorRight) / 2.0
+        # Update position
+        px += avgVel * math.cos(angle)
+        py += avgVel * math.sin(angle)
+        # Collisions with walls
+        if px <= START_W + AGENT_RADIUS or px >= START_W + ARENA_WIDTH/SCALE - AGENT_RADIUS or py <= START_H + AGENT_RADIUS or py >= START_H + ARENA_HEIGHT/SCALE - AGENT_RADIUS:
+            # Restore previous position
+            px, py = self.agent.position
+            # Change agent's orientation based on the rotation performed
             if diff < 0.0:
-                # If the difference is negative (i.e., right motor > left motor), the robot turns left
-                angle += rot
+                # Agent rotated on the right -> make it go on the left
+                angle += math.pi / 2.0
             elif diff > 0.0:
-                # If the difference is positive (i.e., left motor > right motor), the robot turns right
-                angle -= rot
-            # Set angle in range [-180°,180°]
+                # Agent rotated on the left -> make it go on the right
+                angle -= math.pi / 2.0
+            else:
+                # Agent arrived at wall frontally -> invert its direction
+                angle += math.pi
             angle = setAngleInRange(angle)
-            # Average velocity
-            avgVel = (motorLeft + motorRight) / 2.0
-            # Update position
-            px += avgVel * math.cos(angle)
-            py += avgVel * math.sin(angle)
-            # Collisions with walls
-            if px <= START_W + AGENT_RADIUS or px >= START_W + ARENA_WIDTH/SCALE - AGENT_RADIUS or py <= START_H + AGENT_RADIUS or py >= START_H + ARENA_HEIGHT/SCALE - AGENT_RADIUS:
-                # Restore previous position
-                px, py = self.agents[i].position
-                # Change agent's orientation based on the rotation performed
-                if diff < 0.0:
-                    # Agent rotated on the right -> make it go on the left
-                    angle += math.pi / 2.0
-                elif diff > 0.0:
-                    # Agent rotated on the left -> make it go on the right
-                    angle -= math.pi / 2.0
-                else:
-                    # Agent arrived at wall frontally -> invert its direction
-                    angle += math.pi
-                angle = setAngleInRange(angle)
-            # Collision with other peers
-            for j in range(self.nagents):
-                if i != j:
-                    ox, oy = self.agents[j].position
-                    dist = math.sqrt((px-ox)*(px-ox)+(py-oy)*(py-oy))
-                    dist -= 2.0 * AGENT_RADIUS
-                    # Check whether a collision with another agent happens
-                    if dist <= 5e-6: # TO BE FURTHER FIXED
-                        # Restore previous position
-                        px, py = self.agents[i].position
-                        """
-                        # Change agent's orientation based on the rotation performed
-                        if diff < 0.0:
-                            # Agent rotated on the right -> make it go on the left
-                            angle += math.pi / 2.0
-                        elif diff > 0.0:
-                            # Agent rotated on the left -> make it go on the right
-                            angle -= math.pi / 2.0
-                        else:
-                            # Agent arrived at wall frontally -> invert its direction
-                            angle += math.pi
-                        angle = setAngleInRange(angle)
-                        """
-                        # Set random angle (as if the robot is confused by the collision)
-                        angle = self.np_random.uniform(-math.pi, math.pi)
             # Collision with objects
-            for o in self.objects:
-                d, _ = self.distanceAndAngle(i, o, OBJECT_RADIUS)
-                if d < 1e-6:
-                    # Simply restore old position
-                    px, py = self.agents[i].position
-            # Update position and orientation of current agent
-            self.agents[i].angle = angle
-            self.agents[i].position = (px,py)        
-
+            d, _ = self.distanceAndAngle(self.object, OBJECT_RADIUS)
+            if d < 1e-6:
+                # Simply restore old position
+                px, py = self.agent.position
+        # Update position and orientation of current agent
+        self.agent.angle = angle
+        self.agent.position = (px, py)        
         # Perform a world step
         self.world.Step(1.0/FPS, 6*30, 2*30)
         
         reward = 0.0
-        numInTarget = 0
-        # Check whether the agents collided with the targets
-        for i in range(self.nagents):
-            px, py = self.agents[i].position
-            ox, oy = self.target
-            d = math.sqrt(math.pow((px - ox), 2) + math.pow((py - oy), 2))
-            if d <= TARGET_RADIUS:
-                numInTarget += 1
-        if numInTarget == self.nagents:
+        # Check whether the agent with the target
+        px, py = self.agent.position
+        ox, oy = self.target
+        d = math.sqrt(math.pow((px - ox), 2) + math.pow((py - oy), 2))
+        if d <= TARGET_RADIUS:
             reward = 1.0
-        """
-        elif numInTarget > 0:
-            reward = 0.01
-        """
         
         # Update step counter
         self.cstep += 1
@@ -592,101 +536,21 @@ class customEnv(gym.Env):
 
     def getObs(self):
         # Fill the agent observation
-        obs = []
-        for i in range(self.nagents):
-            px, py = self.agents[i].position
-            angle = self.agents[i].angle
-            for oid in range(self.nagents):
-                if i != oid:
-                    # Check whether robot detects its peers
-                    robotsectors = []
-                    robotdists = []
-                    robotangles = []
-                    robotdist, robotrelang = self.distanceAndAngle(i, self.agents[oid], AGENT_RADIUS)
-                    if robotdist <= MAX_DIST and (robotrelang >= -FOV / 2.0 and robotrelang <= FOV / 2.0):
-                        # Store the sector
-                        robotsector, robotminang, robotmaxang = self.calcSector(i, self.agents[oid], AGENT_RADIUS, robotrelang)#self.calcSectorOld(robotrelang)
-                        robotsectors.append(robotsector)
-                        robotdists.append(robotdist)
-                        robotangles.append([robotminang, robotmaxang])
-            # Check whether robot detects any object
-            objsectors = []
-            objdists = []
-            objcolors = []
-            objangles = []
-            objid = 0
-            for obj in self.objects:
-                objdist, objrelang = self.distanceAndAngle(i, obj, OBJECT_RADIUS)
-                if objdist <= MAX_DIST and (objrelang >= -FOV / 2.0 and objrelang <= FOV / 2.0):
-                    # Store the sector
-                    objsector, objminang, objmaxang = self.calcSector(i, obj, OBJECT_RADIUS, objrelang)
-                    objsectors.append(objsector)
-                    objdists.append(objdist)
-                    objangles.append([objminang, objmaxang])
-                    objcolors.append(obj.color1)
-                objid += 1
-            # Compute sectors, distances and colors by managing possible overlappings
-            sectors = np.zeros(NUM_SECTORS, dtype=np.int64)
-            dists = [ [] for _ in range(NUM_SECTORS) ]
-            angles = [ [] for _ in range(NUM_SECTORS) ]
-            colors = [ [] for _ in range(NUM_SECTORS) ]
-            # Loop over robots and fill data
-            for robs, dist, ang in zip(robotsectors, robotdists, robotangles):
-                for s in robs:
-                    if sectors[s] == 0:
-                        sectors[s] = 1
-                        dists[s].append(dist)
-                        angles[s].append(ang)
-                        colors[s].append((0, 0, 255))
-                    else:
-                        cnt = 0
-                        for cdist in dists[s]:
-                            if dist < cdist:
-                               dists[s][cnt] = dist
-                            cnt += 1
-            # Loop over objects and check possible overlapping
-            for objs, dist, color, ang in zip(objsectors, objdists, objcolors, objangles):
-                for s in objs:
-                    if sectors[s] == 0:
-                        sectors[s] = 1
-                        dists[s].append(dist)
-                        angles[s].append(ang)
-                        colors[s].append(color)
-                    else:
-                        cnt = 0
-                        for cdist in dists[s]:
-                            cminang, cmaxang = angles[s][cnt]
-                            if cminang == ang[0] and cmaxang == ang[1]:
-                                # Perfect overlap
-                                if dist < cdist:
-                                    # Object closer than robot -> update distance and color
-                                    dists[s][cnt] = dist
-                                    colors[s][cnt] = color
-                            else:
-                                # No perfect overlap, check partial overlap
-                                if ang[0] < cminang or ang[1] > cmaxang:
-                                    dists[s].append(dist)
-                                    angles[s].append(ang)
-                                    colors[s].append(color)
-                            cnt += 1
-                                
-            # Finally fill observations
-            objlist = [0.0 for _ in range(2 * NUM_SECTORS + 1)]
-            for s in range(NUM_SECTORS):
-                if sectors[s] > 0:
-                    for dist, color in zip(dists[s], colors[s]):
-                        if color == (255,0,0):
-                            objlist[s] = (1.0 - dist / MAX_DIST)
-                        else:
-                            objlist[NUM_SECTORS + s] = (1.0 - dist / MAX_DIST)
-            # Check whether the agent is over the target
-            px, py = self.agents[i].position
-            ox, oy = self.target
-            d = math.sqrt(math.pow((px - ox), 2) + math.pow((py - oy), 2))
-            # Robot center must be inside the target!!!
-            if d < TARGET_RADIUS:
-                objlist[2 * NUM_SECTORS] = 1.0
-            obs += objlist
+        obs = [0.0 for _ in range(NUM_SECTORS + 1)]
+        # Check whether robot detects any object
+        dist, relang = self.distanceAndAngle(self.object, OBJECT_RADIUS)
+        if dist <= MAX_DIST and (relang >= -FOV / 2.0 and relang <= FOV / 2.0):
+            # Store the sector
+            objsector, objminang, objmaxang = self.calcSector(self.object, OBJECT_RADIUS, relang)
+            for i in objsector:
+                obs[i] = (1.0 - dist / MAX_DIST)
+        # Check whether the agent is over the target
+        px, py = self.agent.position
+        ox, oy = self.target
+        d = math.sqrt(math.pow((px - ox), 2) + math.pow((py - oy), 2))
+        # Robot center must be inside the target!!!
+        if d < TARGET_RADIUS:
+            obs[NUM_SECTORS] = 1.0
         return obs
 
     def render(self, mode='human', close=False): # _render

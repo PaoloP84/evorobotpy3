@@ -133,7 +133,7 @@ def main(argv):
 
     parseConfigFile(args.fileini)   # load hyperparameters from the ini file
 
-    availableAlgos = ('OpenAI-ES', 'SSS', 'CMA-ES', 'xNES', 'sNES', 'generational', 'Hill-Climber', 'generalist', 'coevo2', 'coevo', 'archivestar1', 'coevoarch', 'coevosinglepop', 'archivestar1singlepop', 'coevoarchsinglepop')   # check whether the user specified a valid algorithm
+    availableAlgos = ('OpenAI-ES', 'SSS', 'CMA-ES', 'xNES', 'sNES', 'generational', 'generational_nmates', 'Hill-Climber', 'generalist', 'coevo2', 'coevo', 'archivestar1', 'coevoarch', 'coevosinglepop', 'archivestar1singlepop', 'coevoarchsinglepop')   # check whether the user specified a valid algorithm
     if algoname not in availableAlgos:
         print("\033[1mAlgorithm %s is unknown\033[0m" % algoname)
         print("Please use one of the following algorithms:")
@@ -194,10 +194,18 @@ def main(argv):
                 envname = "evorobotpy_envs/" + environment
                 env = gym.make(envname, render_mode=render_mode)
                 add_env = True
+                no_net_env = False
+                try:
+                    no_net_env = env.noNetEnv()
+                except:
+                    pass
             except:
                 print(f"Environment {environment} (passed to gym.make() with argument {envname}) not found!!!")
                 sys.exit()
-        if (isinstance(env.action_space, gym.spaces.box.Box) or add_env):
+        if no_net_env:
+            from policy import PolicyNoNet
+            policy = PolicyNoNet(env, args.fileini, args.seed, test)
+        elif (isinstance(env.action_space, gym.spaces.box.Box) or add_env):
             from policy import GymPolicy
             policy = GymPolicy(env, args.fileini, args.seed, test)      # with continuous action space
         else:
@@ -224,6 +232,8 @@ def main(argv):
         from snes import Algo
     elif (algoname == 'generational'):
         from generational import Algo
+    elif (algoname == 'generational_nmates'):
+        from generational_nmates import Algo
     elif (algoname == 'Hill-Climber'):
         from hillclimber import Algo
     elif (algoname == 'coevo' or algoname == 'generalist'):

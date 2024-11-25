@@ -844,7 +844,7 @@ class Algo(EvoAlgo):
                      pop = np.load(popfile)
                      popshape = pop.shape
                      popsize= int(popshape[0])
-                    for i1 in range(ninds):
+                     for i1 in range(ninds):
                          for i2 in range(ninds):
                              self.policy.set_trainable_flat(np.concatenate((pop[popsize-i1-1], pop[popsize-i2-1])))
                              rew, eval_length = self.policy.rollout(1)

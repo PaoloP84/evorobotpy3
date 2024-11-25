@@ -48,6 +48,9 @@ class Policy(object):
         self.low = -1.0      # mimimum activation
         self.high = 1.0      # maximum activation
         self.morph_rate = None# rate of morphological variation
+        self.fit_id = None   # Fitness id (normally useless)
+        self.seq = None      # Whether to use sequential fitnesses
+        self.sum_comp = None # Whether to apply sum of components
         # Read configuration file
         self.readConfig()
         # Overwrite heterogeneous if number of robots is 1
@@ -88,14 +91,21 @@ class Policy(object):
         if self.nmorphparams > 0:           # initialize the morphological parameter to 0, if any
             for i in range(self.nmorphparams):
                 self.params[(self.nparams - self.nmorphparams + i)] = 0.0
-            if self.morph_rate is None:
-                self.env.setParams(self.params[-self.nmorphparams:])
-            else:
-                # Set the morphological variation rate
-                self.env.setParams(self.params[-self.nmorphparams:], rate=self.morph_rate)
+            # Set the morphological variation rate
+            self.env.setParams(self.params[-self.nmorphparams:], rate=self.morph_rate)
         # Try to set the number of agents
         try:
             self.env.setNAgents(self.nrobots)
+        except:
+            pass
+        # Try to set the number of steps
+        try:
+            self.env.setNSteps(self.maxsteps)
+        except:
+            pass
+        # Try to set the fitness type
+        try:
+            self.env.setFitness(self.fit_id, seq=self.seq, sumComp=self.sum)
         except:
             pass
          
@@ -113,7 +123,7 @@ class Policy(object):
         self.params = np.copy(x)
         self.nn.copyGenotype(self.params)   # copy a vector of parameters in the evonet parameter vector
         if self.nmorphparams > 0:
-            self.env.setParams(self.params[-self.nmorphparams:]) # set the morphology with the morphological parameters
+            self.env.setParams(self.params[-self.nmorphparams:], rate=self.morph_rate) # set the morphology with the morphological parameters
 
     def get_trainable_flat(self):
         return self.params                  # return the evonet vector of parameters
@@ -185,6 +195,15 @@ class Policy(object):
               found = 1  
           if (o == "morph_rate"):
               self.morph_rate = config.getfloat("POLICY","morph_rate")
+              found = 1
+          if (o == "fit_id"):
+              self.fit_id = config.getint("POLICY","fit_id")
+              found = 1
+          if (o == "seq"):
+              self.seq = config.getint("POLICY","seq")
+              found = 1
+          if (o == "sum_comp"):
+              self.sum_comp = config.getint("POLICY","sum_comp")
               found = 1
           if (found == 0):
               print("\033[1mOption %s in section [POLICY] of %s file is unknown\033[0m" % (o, self.fileini))
@@ -277,7 +296,7 @@ class GymPolicy(Policy):
                 rew += r
                 t += 1
                 if (self.test > 0):
-                    if (self.test == 1):
+                    if (self.test == 1 and render):
                         self.env.render()
                         time.sleep(0.05)
                     if (self.test == 2):
@@ -405,4 +424,47 @@ class ErPolicy(Policy):
             print("Average Fit %.2f Steps %.2f " % (rews, steps/float(ntrials)))
         return rews, steps
         
+# Gym policies use float64 observation and action vectors (evonet use float32)
+# create a new observation vector each step, consequently we need to pass the pointer to evonet each step 
+# Use renderWorld to show the activation of neurons
+class PolicyNoNet(Policy):
+    def __init__(self, env, filename, seed, test):
+        self.ninputs = env.observation_space.shape[0]      # only works for problems with continuous observation space
+        self.noutputs = env.action_space.shape[0]          # only works for problems with continuous action space
+        Policy.__init__(self, env, filename, seed, test)
+        
+    def get_trainable_flat(self):
+        params = np.zeros(self.ninputs)
+        for i in range(self.ninputs):
+            params[i] = np.random.uniform(-self.wrange, self.wrange)
+        return params
 
+    def rollout(self, ntrials, render=False, seed=None):   # evaluate the policy for one or more episodes 
+        rews = 0.0                    # summed rewards
+        steps = 0                     # step performed
+        if seed is not None:
+            self.env.seed(seed)          # set the seed of the environment that impacts on the initialization of the robot/environment
+        # Copy parameters
+        self.env.setParams(self.params)
+        # Action is useless
+        ac = None
+        for trial in range(ntrials):
+            self.ob, _ = self.env.reset(seed=None)   # reset the environment at the beginning of a new episode
+            rew = 0.0
+            t = 0
+            while t < self.maxsteps:
+                self.ob, r, terminated, truncated, _ = self.env.step(ac)  # perform a simulation step (observation and action match)
+                rew += r
+                t += 1
+                if self.test > 0 and render:
+                    self.env.render()
+                if terminated or truncated:
+                    break
+            if (self.test > 0):
+                print("Trial %d Fit %.2f Steps %d " % (trial, rew, t))
+            steps += t
+            rews += rew
+        rews /= ntrials               # Normalize reward by the number of trials
+        if (self.test > 0 and ntrials > 1):
+            print("Average Fit %.2f Steps %.2f " % (rews, steps/float(ntrials)))
+        return rews, steps
