@@ -105,7 +105,7 @@ class Policy(object):
             pass
         # Try to set the fitness type
         try:
-            self.env.setFitness(self.fit_id, seq=self.seq, sumComp=self.sum)
+            self.env.setFitness(self.fit_id, seq=self.seq, sumComp=self.sum_comp)
         except:
             pass
          
