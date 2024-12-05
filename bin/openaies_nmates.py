@@ -42,6 +42,8 @@ class Algo(EvoAlgo):
             self.wdecay = 0
             self.symseed = 1
             self.saveeach = 60
+            self.nmates = 1
+            self.mating = 0
             self.testmode = 0
             options = config.options("ALGO")
             for o in options:
@@ -53,10 +55,10 @@ class Algo(EvoAlgo):
                     self.stepsize = config.getfloat("ALGO","stepsize")
                     found = 1
                 if o == "noisestddev":
-                    self.noiseStdDev = config.getfloat("ALGO","noiseStdDev")
+                    self.noiseStdDev = config.getfloat("ALGO","noisestddev")
                     found = 1
                 if o == "samplesize":
-                    self.batchSize = config.getint("ALGO","sampleSize")
+                    self.batchSize = config.getint("ALGO","samplesize")
                     found = 1
                 if o == "wdecay":
                     self.wdecay = config.getint("ALGO","wdecay")
@@ -66,6 +68,12 @@ class Algo(EvoAlgo):
                     found = 1
                 if o == "saveeach":
                     self.saveeach = config.getint("ALGO","saveeach")
+                    found = 1
+                if o == "nmates":
+                    self.nmates = config.getint("ALGO","nmates")
+                    found = 1
+                if o == "mating":
+                    self.mating = config.getint("ALGO","mating")
                     found = 1
                 if o == "testmode":
                     self.testmode = config.getint("ALGO","testmode")
@@ -81,6 +89,8 @@ class Algo(EvoAlgo):
                     print("wdecay [0/2]              : weight decay (default 0), 1 = L1, 2 = L2")
                     print("symseed [0/1]             : same environmental seed to evaluate symmetrical samples [default 1]")
                     print("saveeach [integer]        : save file every N minutes (default 60)")
+                    print("nmates [integer]          : the number of mates each sample is evaluated with")
+                    print("mating [0/1]              : types of mating (default 0 -> centroid is the partner), 1 -> random samples with random signs")
                     print("testmode [0/1]            : test mode (default 0), 1 = functional network test")
                     sys.exit()
         else:
@@ -173,26 +183,65 @@ class Algo(EvoAlgo):
         assert len(genAndSteps) == 2, "Inconsistent number of data!!!"
         self.cgen = int(genAndSteps[0])
         self.steps = int(genAndSteps[1])
+        
+    def generateMates(self, ind):
+        mates = []
+        coeffs = []
+        while len(mates) < self.nmates:
+            idx = np.random.randint(0, self.batchSize)
+            if idx != ind:
+                mates.append(idx)
+                coeff = np.random.uniform(0.0, 1.0)
+                if coeff >= 0.5:
+                    coeffs.append(1.0)
+                else:
+                    coeffs.append(-1.0)
+        assert len(mates) == self.nmates, "Something went wrong during the generation of mates!!!"
+        return mates, coeffs
  
     def evaluate(self):
         cseed = self.seed + self.cgen * self.batchSize  # Set the seed for current generation (master and workers have the same seed)
         self.rs = np.random.RandomState(cseed)
         self.samples = self.rs.randn(self.batchSize, self.nparams)
         self.cgen += 1
+        
+        # Check that the task is multi-agent and requires heterogeneity, otherwise we cannot use N-mates method
+        heterogeneous = self.policy.is_heterogeneous
+        assert heterogeneous == 1, "Cannot use N-mates method with homogeneous agents"
 
         # evaluate samples
         candidate = np.arange(self.nparams, dtype=np.float64)
-        for b in range(self.batchSize):               
+        for b in range(self.batchSize):
+            # Mates are the same for each pair of symmetric samples
+            if self.nmates == 1:
+                # Check mating
+                if self.mating == 0:
+                    # Centroid is the partner for all the samples
+                    mates = -1
+                else:
+                    # Extract a random partner
+                    mates, coeffs = self.generateMates(b)
+            else:
+                # Extract <nmates> random partners
+                mates, coeffs = self.generateMates(b)               
             for bb in range(2):
                 if (bb == 0):
                     candidate = self.center + self.samples[b,:] * self.noiseStdDev
                 else:
                     candidate = self.center - self.samples[b,:] * self.noiseStdDev
-                self.policy.set_trainable_flat(candidate)
-                self.policy.nn.normphase(0) # normalization data is collected during the post-evaluation of the best sample of he previous generation
-                eval_rews, eval_length = self.policy.rollout(self.policy.ntrials, seed=(self.seed + (self.cgen * self.batchSize) + b))
-                self.samplefitness[b*2+bb] = eval_rews
-                self.steps += eval_length
+                self.samplefitness[b*2+bb] = 0.0
+                for i in range(self.nmates):
+                    cmate = None
+                    if self.mating == 0:
+                        cmate = self.center
+                    else:
+                        cmate = self.center + coeffs[i] * self.samples[mates[i],:] * self.noiseStdDev
+                    self.policy.set_trainable_flat(np.concatenate((candidate, cmate)))
+                    self.policy.nn.normphase(0) # normalization data is collected during the post-evaluation of the best sample of he previous generation
+                    eval_rews, eval_length = self.policy.rollout(self.policy.ntrials, seed=(self.seed + (self.cgen * self.batchSize) + b))
+                    self.samplefitness[b*2+bb] += eval_rews
+                    self.steps += eval_length
+                self.samplefitness[b*2+bb] /= self.nmates
 
         fitness, self.index = ascendent_sort(self.samplefitness)       # sort the fitness
         self.avgfit = np.average(fitness)                         # compute the average fitness                   
@@ -212,19 +261,39 @@ class Algo(EvoAlgo):
         # in openaiesp.py this is done the next generation, move this section before the section "evaluate samples" to produce identical results
         gfit = 0
         if self.policy.nttrials > 0 and self.bestsol is not None:
-            self.policy.set_trainable_flat(self.bestsol)
-            self.tnormepisodes += self.inormepisodes
-            for t in range(self.policy.nttrials):
-                if self.policy.normalize == 1 and self.normepisodes < self.tnormepisodes:
-                    self.policy.nn.normphase(1)
-                    self.normepisodes += 1  # we collect normalization data
-                    self.normalizationdatacollected = True
+            if self.nmates == 1:
+                # Check mating
+                if self.mating == 0:
+                    # Centroid is the partner for all the samples
+                    mates = -1
                 else:
-                    self.policy.nn.normphase(0)
-                eval_rews, eval_length = self.policy.rollout(1, seed=(self.seed + 100000 + t))
-                gfit += eval_rews               
-                self.steps += eval_length
-            gfit /= self.policy.nttrials    
+                    # Extract a random partner
+                    mates, coeffs = self.generateMates(b)
+            else:
+                # Extract <nmates> random partners
+                mates, coeffs = self.generateMates(b)
+            for i in range(self.nmates):
+                cfit = 0.0
+                cmate = None
+                if self.mating == 0:
+                    cmate = self.center
+                else:
+                    cmate = self.center + coeffs[i] * self.samples[mates[i],:] + self.noiseStdDev
+                self.policy.set_trainable_flat(np.concatenate((self.bestsol, cmate)))
+                self.tnormepisodes += self.inormepisodes
+                for t in range(self.policy.nttrials):
+                    if self.policy.normalize == 1 and self.normepisodes < self.tnormepisodes:
+                        self.policy.nn.normphase(1)
+                        self.normepisodes += 1  # we collect normalization data
+                        self.normalizationdatacollected = True
+                    else:
+                        self.policy.nn.normphase(0)
+                    eval_rews, eval_length = self.policy.rollout(1, seed=(self.seed + 100000 + t))
+                    cfit += eval_rews               
+                    self.steps += eval_length
+                cfit /= self.policy.nttrials
+                gfit += cfit
+            gfit /= self.nmates    
             self.updateBestg(gfit, self.bestsol)
 
 

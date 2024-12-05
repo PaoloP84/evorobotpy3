@@ -58,12 +58,11 @@ START_H = 75/SCALE
 VIEWPORT_W = 1280
 VIEWPORT_H = 640
 
-# Number of objects
-NUM_OBJECTS = 1
-# Sizes of agents and targets
+# Sizes of agent and object
 AGENT_RADIUS = 0.75
-TARGET_RADIUS = 2.0
 OBJECT_RADIUS = 0.5
+# Thresold
+THRESHOLD = 0.25
 # Object density
 OBJECT_DENSITY = 1.5
 # Agent density
@@ -157,7 +156,7 @@ class customEnv(gym.Env):
         self.nsteps = 1000
         
         # Number of observations
-        self.ob_len = NUM_SECTORS + 1# For each sector the proportion of target detected + ground sensor
+        self.ob_len = NUM_SECTORS # For each sector the proportion of target detected
         # Number of actions
         self.ac_len = 2 # left and right wheel speeds
 
@@ -495,11 +494,11 @@ class customEnv(gym.Env):
                 # Agent arrived at wall frontally -> invert its direction
                 angle += math.pi
             angle = setAngleInRange(angle)
-            # Collision with objects
-            d, _ = self.distanceAndAngle(self.object, OBJECT_RADIUS)
-            if d < 1e-6:
-                # Simply restore old position
-                px, py = self.agent.position
+        # Collision with objects
+        d, _ = self.distanceAndAngle(self.object, OBJECT_RADIUS)
+        if d < 1e-6:
+            # Simply restore old position
+            px, py = self.agent.position
         # Update position and orientation of current agent
         self.agent.angle = angle
         self.agent.position = (px, py)        
@@ -511,7 +510,7 @@ class customEnv(gym.Env):
         px, py = self.agent.position
         ox, oy = self.target
         d = math.sqrt(math.pow((px - ox), 2) + math.pow((py - oy), 2))
-        if d <= TARGET_RADIUS:
+        if d <= AGENT_RADIUS + OBJECT_RADIUS + THRESHOLD:
             reward = 1.0
         
         # Update step counter
@@ -544,13 +543,6 @@ class customEnv(gym.Env):
             objsector, objminang, objmaxang = self.calcSector(self.object, OBJECT_RADIUS, relang)
             for i in objsector:
                 obs[i] = (1.0 - dist / MAX_DIST)
-        # Check whether the agent is over the target
-        px, py = self.agent.position
-        ox, oy = self.target
-        d = math.sqrt(math.pow((px - ox), 2) + math.pow((py - oy), 2))
-        # Robot center must be inside the target!!!
-        if d < TARGET_RADIUS:
-            obs[NUM_SECTORS] = 1.0
         return obs
 
     def render(self, mode='human', close=False): # _render
@@ -593,16 +585,6 @@ class customEnv(gym.Env):
                 (self.scroll * SCALE + VIEWPORT_W, VIEWPORT_H),
                 (self.scroll * SCALE, VIEWPORT_H),
             ],
-        )
-        
-        # Draw target
-        targetx, targety = self.target
-        targetcenter = (targetx * SCALE, targety * SCALE)
-        pygame.draw.circle(
-            self.surf,
-            color=(255,0,0),
-            center=targetcenter,
-            radius=TARGET_RADIUS * SCALE,
         )
         
         for obj in self.drawlist:

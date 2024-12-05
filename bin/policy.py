@@ -248,7 +248,7 @@ class BulletPolicy(Policy):
                 rew += r
                 t += 1
                 if (self.test > 0):
-                    if (self.test == 1):
+                    if (self.test == 1 and render):
                         self.env.render()
                         time.sleep(0.05)
                     if (self.test == 2):
@@ -399,15 +399,12 @@ class ErPolicy(Policy):
             renderWorld2.setScale(scale)
         for trial in range(ntrials):
             self.env.reset()                     # reset the environment at the beginning of a new episode
-            #print(self.ob)
             self.nn.resetNet()                   # reset the activation of the neurons (necessary for recurrent policies)
             rew = 0.0
             t = 0
             while t < self.maxsteps:
                 self.nn.updateNet()              # update the activation of the policy
-                #print(self.ac)
                 rew += self.env.step()           # perform a simulation step
-                #print(self.ob)
                 t += 1
                 if (self.test > 0):
                     self.env.render()

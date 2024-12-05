@@ -315,7 +315,7 @@ class customEnv(gym.Env):
     def getNumParams(self):
         return self.nparams
 
-    def setParams(self, params):
+    def setParams(self, params, rate=None):
         self.params = params
         # And the rate
         self.rate = MOD_RATE

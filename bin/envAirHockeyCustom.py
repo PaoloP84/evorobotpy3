@@ -50,12 +50,12 @@ FIELD_EDGE = 100
 MAX_DIST = FIELD_DIAG/SCALE
 
 # Start width (for rendering)
-START_W = 50/SCALE
+START_W = 250/SCALE
 # Start height (for rendering)
 START_H = 50/SCALE
 
 # Window sizes
-VIEWPORT_W = 2000
+VIEWPORT_W = 1500
 VIEWPORT_H = 600
 
 # Sizes of agents (paddles) and hockey disk (puck)
@@ -136,6 +136,8 @@ class customEnv(gym.Env):
         self.puckDensity = PUCK_DENSITY
         self.paddles = []
         self.paddleDensity = PADDLE_DENSITY
+        self.drawlist = []
+        # Number of agents
         self.nagents = 2
         # Opponent
         self.opponents = np.zeros(self.nagents, dtype=np.int64)
@@ -201,6 +203,8 @@ class customEnv(gym.Env):
         for paddle in self.paddles:
             self.world.DestroyBody(paddle)
         self.paddles = []
+        # Maybe useless
+        self.drawlist = []
 
     def _generate_field(self):
         # Field
@@ -343,7 +347,7 @@ class customEnv(gym.Env):
         wall5.color1 = (0,0,0)
         wall5.color2 = (0,0,0)
         self.field.append(wall5)
-        # Up horizontal
+        # Top horizontal
         poly = [
             (START_W-20/SCALE,   START_H+FIELD_HEIGHT/SCALE),
             (START_W-20/SCALE,   START_H+FIELD_HEIGHT/SCALE+20/SCALE),
@@ -492,6 +496,8 @@ class customEnv(gym.Env):
         self.hit = np.full(self.nagents, False)
         # Reset step
         self.cstep = 0
+                
+        self.render()
 
         return self.step(np.array(fakeAction))[0], {} # self._step
 
@@ -503,6 +509,7 @@ class customEnv(gym.Env):
             px, py = self.paddles[i].position
             if i == 0:
                 act = action[0:self.ac_len]
+                print(i, act)
                 # Compute forces
                 fx = (((float(act[0]) * MAX_VELOCITY) - self.paddles[i].linearVelocity.x) / MAX_VELOCITY) * MAX_FORCE
                 fy = (((float(act[1]) * MAX_VELOCITY) - self.paddles[i].linearVelocity.y) / MAX_VELOCITY) * MAX_FORCE
@@ -513,6 +520,7 @@ class customEnv(gym.Env):
                     fx += -MAX_FORCE * 2.0 * dx
             else:
                 act = action[self.ac_len:]
+                print(i, act)
                 # Invert actions for right agent
                 act[0] = (2.0 - (act[0] + 1.0)) - 1.0
                 act[1] = (2.0 - (act[1] + 1.0)) - 1.0
@@ -534,6 +542,7 @@ class customEnv(gym.Env):
         # Fill the agent observation
         obs = []
         for i in range(self.nagents):
+            print(self.paddles[i].position)
             o = self.opponents[i]
             # Get relative distance and angle from opponent
             d1, a1 = self.distanceAndAngle(i, self.paddles[o], PADDLE_RADIUS)
@@ -613,6 +622,10 @@ class customEnv(gym.Env):
         self.cstep += 1
 
         self.timer += 1
+        
+        self.render()
+        
+        print(obs)
 
         return np.array(obs, dtype=np.float32), reward, done, False, {}
 
