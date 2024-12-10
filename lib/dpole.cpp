@@ -183,8 +183,8 @@ void Problem::initEnvironment()
     stateRanges[3] = 0.135088;
     stateRanges[4] = stateRanges[2];
     stateRanges[5] = stateRanges[3];
-	m_length_2 = 0.25;
-	m_masspole_2 = 0.05;
+    m_length_2 = 0.25;
+    m_masspole_2 = 0.05;
     printf("Double-pole: pole_length_2 %.2f pole_mass_2 %.2f\n", m_length_2 * 2.0, m_masspole_2 * 2.0);
 }
 
