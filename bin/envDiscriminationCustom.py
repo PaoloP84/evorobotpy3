@@ -410,9 +410,9 @@ class customEnv(gym.Env):
             fixtures = fixtureDef(shape = circleShape(radius=AGENT_RADIUS), density=self.agentDensity, restitution=1.0),
             fixedRotation = False
         )
-        # Set color to blue
-        self.agent.color1 = (0,0,255)
-        self.agent.color2 = (0,0,255)
+        # Set color to green
+        self.agent.color1 = (0,255,0)
+        self.agent.color2 = (0,255,0)
         self.agent.linearDamping = AGENT_DAMPING
         self.agent.angularDamping = AGENT_DAMPING
 
@@ -437,8 +437,8 @@ class customEnv(gym.Env):
             fixtures = fixtureDef(shape = circleShape(radius=OBJECT_RADIUS), friction=0.0, density=self.objectDensity, restitution=1.0)
         )
         self.object.linearVelocity = (0,0)
-        self.object.color1 = (255,0,0)
-        self.object.color2 = (0,0,0)
+        self.object.color1 = (255,0,255)
+        self.object.color2 = (255,0,255)
         
         self.drawlist = self.arena + [self.object] + [self.agent]
 
@@ -592,8 +592,6 @@ class customEnv(gym.Env):
                 trans = f.body.transform
                 if type(f.shape) is circleShape:
                     width = 0
-                    if obj.color1 == (255, 0, 0):
-                        width = 1
                     pygame.draw.circle(
                         self.surf,
                         color=obj.color1,
@@ -608,7 +606,7 @@ class customEnv(gym.Env):
                         radius=f.shape.radius * SCALE,
                         width=width,
                     )
-                    if obj.color1 == (0, 0, 255) and obj.color2 == (0, 0, 255):
+                    if obj.color1 == (0, 255, 0) and obj.color2 == (0, 255, 0):
                         # Agent -> draw visual cone
                         center = trans * f.shape.pos * SCALE
                         # Start position is fixed

@@ -8,14 +8,17 @@
 #include <math.h>
 #include <locale.h>
 #include "robot-env.h"
-#include "aggregation.h"
+#include "aggregation_two_areas.h"
 #include "utilities.h"
 
-#define SCALE 1.5
+#define SCALE 0.5
+#define NUM_STEPS 1000
 
 // the current step
 int cstep;
-int steps = 1000;
+int steps = 250;
+// Alpha
+double alpha = 0.9;
 
 // Pointer to the observations
 float* cobservation;
@@ -26,35 +29,27 @@ int* cdone;
 // Pointer to world objects to be rendered
 double* dobjects;
 
-int robottype = MarXBot;	// the robot we are using
-int nnests;			// number of nest elements
-double nestdist;            	// minimum nest distance
-double robotnestdist;       	// minimum distance between robot and nest
+int robottype = ePuck;		// the robot we are using
+int nnests = 2;		// number of nest elements
+double nestsize = 350.0;       // radii of the nests
 double robotdist;           	// minimum robot distance
 double *robotsdist;		// matrix containing robot distances;
 int *robotsbydistance;		// matrix containing the id of the robots ordered by the inverse of the distance
-int nhiddens = 10;		// number of internal units
+int nhiddens = 0;		// number of internal units
 int afunction = 1;		// activation function
-double wsize = 5000.0;		// world size
-double asize;			// maximum nest size
-double msize;			// minimum nest size
-double nestBonus = 100.0;	// bonus awarded for the ability to reach a nest
-double kdist = 1.0;		// coefficient weighting the distance component of fitness
-bool robotOnNest[100];		// flag whether the robot is on the nest
-int nrobotsOnNest[100];	// Number of robots on a given nest
-double* clstMetric;		// Cluster metric
-double* dispMetric;		// Dispersion metric
+double wsize = 2250.0;		// world size
+double fitness[NUM_STEPS];	// fitness
 
 // Static methods (for sensors and other)
 void readEvoConfig();
-double calcNestRadius(int nr);
-int calcRobots(double radius);
 void updateRobotDistances();
 int initCameraSensorRFB(struct robot *cro);
 void updateCameraAddBlob(double *cb, int *nb, double color, double dist, double brangel, double branger);
 void updateCameraSensorRFB(struct robot *cro, int *rbd, int noutputs);
 int initGroundSensor(struct robot *cro);
 void updateGroundSensor(struct robot *cro);
+int initCommSensor(struct robot *cro);
+void updateCommSensor(struct robot *cro);
 
 /*
  * env constructor
@@ -84,29 +79,30 @@ Problem::Problem()
       		switch(robottype)
       		{
       			case Khepera:
-      				ro->maxSpeed = 144.0;
+      				ro->maxSpeed = 115.0;
       				break;
       			case ePuck:
-      				ro->maxSpeed = 200.0;
+      				ro->maxSpeed = 160.0;
       				break;
       			case MarXBot:
       			default:
-      				ro->maxSpeed = 500.0;
+      				ro->maxSpeed = 400.0;
       				break;
       		}
       		// Initial color		
-      		ro->color = 4;  // frontal and rear side are red and blue, respectively
+      		ro->color = 4;
 
       		// initialize sensors
       		ninputs = 0;
       		ninputs += initInfraredSensor(ro);
       		ninputs += initCameraSensorRFB(ro);
       		ninputs += initGroundSensor(ro);
+      		ninputs += initCommSensor(ro);
       		
       		initRobotSensors(ro, ninputs);        // allocate and initialize the robot->sensor vector that contain net->ninputs values and is passed to the function that update the state of the robots' network
       		// initialize motors
       		ro->motorwheels = 2;
-      		ro->motorwheelstype = 1; // encoding of speed and rotation
+      		ro->motorwheelstype = 0; // encoding of speed and rotation
       		ro->motorleds = 2;
 
       		// set the id number of motors neurons
@@ -114,15 +110,7 @@ Problem::Problem()
       		ro->motorledsid = ro->motorwheelsid + ro->motorwheels;
       		noutputs = ro->motorwheels + ro->motorleds;
 	}
-	
-	// Update target areas (nests) size
-	asize = calcNestRadius(nrobots);
-	// Compute the minimum nest size
-	msize = (rob->radius * 2.0); // The minimum size to have a robot in a nest
-	// Metrics
-	clstMetric = (double*)malloc(steps * sizeof(double));
-	dispMetric = (double*)malloc(steps * sizeof(double));
-	
+
 	robotsdist = (double*)malloc((nrobots * nrobots) * sizeof(double));
 	robotsbydistance = (int*)malloc((nrobots * nrobots) * sizeof(int));
 	
@@ -153,93 +141,25 @@ void Problem::reset()
 	struct robot *ro2;
 	int r1, r2;
 	double fcx, fcy, fcr;
-	double distfromborder = 100.0;
 	bool placed;
 	double dist;
 	int nest;
-	int other;
-	double nestPos[100];
-	double minsize;
-	int nthrobots; // Theoretical number of robots that can stay in a nest
-	int nleftrobots; // Remaining robots to be placed
 
-	switch (robottype)
-	{
-	   	case (Khepera):
-	    		distfromborder = asize + 200.0;
-			break;
-	   	case (ePuck):
-	    		distfromborder = asize + 200.0;
-			break;
-	   	case (MarXBot):
-	   	default:
-	    		distfromborder = asize + 200.0;
-			break;
-	}
-	
-	minsize = msize; // Set minimum size
-	nthrobots = 0;
-	
 	// Nests
-	if (nnests == 1)
+	for (nest = 0; nest < nnests; nest++)
 	{
-		fcx = rng->getDouble(distfromborder, worldx - distfromborder);
-      		fcy = rng->getDouble(distfromborder, worldy - distfromborder);
-      		// Radius is the maximum possible
-		fcr = asize;
-		// Store values
-		envobjs[4].x = nestPos[0] = fcx;
-		envobjs[4].y = nestPos[1] = fcy;
-		envobjs[4].r = nestPos[2] = fcr;
-		nrobotsOnNest[0] = 0;
+		fcx = worldx / 2.0;
+		if (nest == 0)
+			fcy = worldy / 4.0;
+		else
+			fcy = 3.0 * worldy / 4.0;
+		fcr = nestsize;
+		envobjs[4 + nest].x = fcx;
+		envobjs[4 + nest].y = fcy;
+		envobjs[4 + nest].r = fcr;
 	}
-	else
-	{
-		for (nest = 0; nest < nnests; nest++)
-		{
-			placed = false;
-			fcx = fcy = fcr = -1.0; // Invalid value
-			while (!placed)
-			{
-				// Extract random position and radius
-				fcx = rng->getDouble(distfromborder, worldx - distfromborder);
-      				fcy = rng->getDouble(distfromborder, worldy - distfromborder);
-      				fcr = rng->getDouble(minsize, asize);
-      				placed = true;
-				other = 0;
-				while ((other < nest) && placed)
-				{
-				  	// Compute distance with already placed nests
-				  	dx = (fcx - nestPos[3 * other]);
-				  	dy = (fcy - nestPos[3 * other + 1]);
-				  	dist = sqrt(dx*dx+dy*dy);
-				  	if (dist < nestdist)
-				    		placed = false;
-				  	other++;
-				}
-			}
-			envobjs[4 + nest].x = nestPos[3 * nest] = fcx;
-			envobjs[4 + nest].y = nestPos[3 * nest] = fcy;
-			envobjs[4 + nest].r = nestPos[3 * nest] = fcr;
-			nthrobots += calcRobots(fcr);
-			// Update minimum size
-			if (nest == (nnests - 2))
-			{
-				// Check the number of robots
-				if (nthrobots < nrobots)
-				{
-					nleftrobots = (nrobots - nthrobots);
-					if (nleftrobots > 2)
-					{
-						minsize = calcNestRadius(nleftrobots);
-					}
-				}
-			}
-			nrobotsOnNest[nest] = 0;
-		}
-	}
-
-      	// initial positions and orientations of the robots
+	
+	// initial positions and orientations of the robots
 	for (r1=0, ro1=rob; r1 < nrobots; r1++, ro1++)
 	{
 		placed = false;
@@ -249,43 +169,42 @@ void Problem::reset()
         		ro1->x = rng->getDouble(200.0, wsize - 200.0);
         		ro1->y = rng->getDouble(200.0, wsize - 200.0);
         		placed = true;
-        		// Check whether robot position overlaps with nests
+        		// Check whether robot position is not over nests
         		nest = 0;
-        		while ((nest < nnests) && placed)
+        		while (nest < nnests && placed)
         		{
-          			// Distance from nest
-          			dx = (ro1->x - nestPos[3 * nest]);
-          			dy = (ro1->y - nestPos[3 * nest + 1]);
+        			// Distance from nest
+          			dx = (ro1->x - envobjs[4 + nest].x);
+          			dy = (ro1->y - envobjs[4 + nest].y);
           			dist = sqrt(dx * dx + dy * dy);
-          			if (dist < robotnestdist)
+          			if (dist <= envobjs[4 + nest].r + ro1->radius)
             				placed = false;
           			nest++;
         		}
         		if (placed)
         		{
-          			// Check whether robot position overlaps with other robots
-          			for (r2=0, ro2=rob; r2 < r1; r2++, ro2++)
-          			{
-            				dx = (ro1->x - ro2->x);
-            				dy = (ro1->y - ro2->y);
-            				dist = sqrt(dx*dx+dy*dy);
-            				if (dist < robotdist)
-              					placed = false;
-          			}
-        		}
+				// Check whether robot position overlaps with other robots
+		  		for (r2=0, ro2=rob; r2 < r1; r2++, ro2++)
+		  		{
+		    			dx = (ro1->x - ro2->x);
+		    			dy = (ro1->y - ro2->y);
+		    			dist = sqrt(dx*dx+dy*dy);
+		    			if (dist < robotdist)
+		      				placed = false;
+				}
+			}
      		}
-        	ro1->alive = true;
-		ro1->energy = 1.0;
-		robotOnNest[r1] = false;
-		for (s = 0, ro1->csensors = ro1->sensors; s < ninputs; s++, ro1->csensors++)
+        	for (s = 0, ro1->csensors = ro1->sensors; s < ninputs; s++, ro1->csensors++)
 			*ro1->csensors = 0.0;
-		//printf("Robot %d (attempts %d): (%lf,%lf)\n", r1, attempts, ro1->x, ro1->y);
 	}
 
 	// Get observations
 	getObs();	
 	
 	cstep = 0;
+	
+	// Initialize fitness
+	fitness[0] = 0.0;
 }
 
 
@@ -332,14 +251,13 @@ void Problem::getObs()
         	updateInfraredSensor(ro);
         	updateCameraSensorRFB(ro, rbd, noutputs);
         	updateGroundSensor(ro);
-        	//printf("cstep %d - robot %d: ", cstep, r);
+        	updateCommSensor(ro);
         	for(s=0, ro->csensors = ro->sensors; s < ninputs; s++, ro->csensors++)
         	{
            		cobservation[u] = *ro->csensors;
-           		//printf("%.3f ", cobservation[u]);
+           		//printf("Robot %d - ob[%d]: %lf\n", r, u, cobservation[u]);
            		u++;
            	}
-           	//printf("\n");
     	}
 }
 
@@ -351,127 +269,56 @@ double Problem::step()
 
     	double dx, dy;
     	double dist;
-    	struct robot *ro, *ro2;
+    	struct robot *ro;
     	int r;
     	double reward;
     	float *cacti;
     	int nest;
-    	bool onNest;
-    	int rr;
-    	double robotradius = 1.0;
-    	const double maxDist = sqrt(2.0 * wsize * wsize);
-    	double cluster;
-    	int nclusters;
-    	double dispersion;
-    	double cogx, cogy;
-    	double fit[1000];
-	double tfit;
-	double cdist;
-	double mydist;
+	double cfit;
+	int num_target_a = 0;
+	int num_target_b = 0;
+	bool found = false;
 
     	*cdone = 0;
     	reward = 0.0;
-    	for (nest = 0; nest < nnests; nest++)
-    		nrobotsOnNest[nest] = 0;
+	
     	for (r=0, ro=rob, cacti=caction; r < nrobots; r++, ro++, cacti = (cacti + noutputs))
-    	{
-    		onNest = false;
-    		if (r == 0)
-            		robotradius = ro->radius;
-		updateRobot(ro, cacti);
-    		for (nest = 0; nest < nnests; nest++)
-            	{
-              		dx = ro->x - envobjs[4 + nest].x;
-              		dy = ro->y - envobjs[4 + nest].y;
-              		cdist = sqrt((dx*dx)+(dy*dy));
-			if (cdist < envobjs[4 + nest].r)
-              		{
-                		onNest = true;
-                		// Update the number of robots on that nest
-                		nrobotsOnNest[nest]++;
-              		}
-              	}
-              	if (onNest)
-              		robotOnNest[r] = true;
-            	else
-              		robotOnNest[r] = false;
-    	}
+    		updateRobot(ro, cacti);
     
 	getObs();
 	
-	// Compute metrics
-	// Cluster
-	cluster = 0.0;
-	nclusters = 0;
-	for (nest = 0; nest < nnests; nest++)
-        {
-        	double nmax;
-        	double circ;
-        	if (nrobotsOnNest[nest] > 0)
-        	{
-			circ = PI2 * envobjs[4 + nest].r;
-			nmax = circ / (2.0 * robotradius);
-			cluster += (nrobotsOnNest[nest] / nmax);
-			nclusters++;
-		}
-	}
-	if (nclusters > 0)
-		cluster /= nclusters;
-	// Update array
-	clstMetric[cstep] = cluster;
-	// Dispersion
-	dispersion = 0.0;
-	// Compute COG (Center Of Gravity)
-	cogx = 0.0;
-	cogy = 0.0;
-	for (r=0, ro=rob; r < nrobots; r++, ro++)
-	{
-		cogx += ro->x;
-		cogy += ro->y;
-	}
-	cogx /= nrobots;
-	cogy /= nrobots;
-	// Now compute dispersion metric
-	for (r=0, ro=rob; r < nrobots; r++, ro++)
-	{
-		dx = (cogx - ro->x);
-		dy = (cogy - ro->y);
-		dist = sqrt(dx * dx + dy * dy);
-		dispersion += (dist * dist);
-	}
-	dispersion /= (4.0 * robotradius * robotradius);
-	dispMetric[cstep] = dispersion;
 	cstep++;
-    	// Episode ends if the number of performed steps exceeds the time limit
+	
+	// Compute reward
+	for (r=0, ro=rob; r < nrobots; r++, ro++)
+	{
+		nest = 0;
+		found = false;
+		while ((nest < nnests) && !found)
+            	{
+              		dx = ro->x - envobjs[4 + nest].x;
+              		dy = ro->y - envobjs[4 + nest].y;
+              		dist = sqrt((dx*dx)+(dy*dy));
+			if (dist < envobjs[4 + nest].r)
+              		{
+                		if (nest == 0)
+                			num_target_a++;
+                		else
+                			num_target_b++;
+                		found = true;
+              		}
+              		nest++;
+              	}
+        }
+        
+        cfit = fabs(num_target_a - num_target_b) / nrobots;
+        fitness[cstep] = alpha * fitness[cstep - 1] + (1.0 - alpha) * cfit;
+	
+	// Episode ends if the number of performed steps exceeds the time limit
 	if (cstep >= steps)
 	{
-		// Compute fitness
-		tfit = 0.0;
-		for (r=0, ro=rob; r < nrobots; r++, ro++)
-		{
-			fit[r] = 0.0;
-			if (robotOnNest[r])
-        			fit[r] += nestBonus; // Bonus
-			// Compute average distance with swarm-mates
-			cdist = 0.0;
-          		for (rr = 0, ro2 = rob; rr < nrobots; rr++, ro2++)
-          		{
-            			// Distance with others
-            			dx = (ro->x - ro2->x);
-            			dy = (ro->y - ro2->y);
-            			mydist = sqrt((dx*dx)+(dy*dy));
-            			cdist += (mydist / maxDist);
-			}
-			cdist /= (nrobots - 1);
-			// Add component rewarding for swarm distance minimization
-			fit[r] += kdist * (1.0 - cdist);
-        		// Update episode fitness
-        		tfit += fit[r];
-      		}
-      		// Normalize episode fitness over the number of robots
-      		tfit /= nrobots;
-      		// Update fitness
-      		reward = tfit;
+		// Update fitness
+      		reward = fitness[steps];
 		*cdone = 1.0;
 	}
     
@@ -566,9 +413,9 @@ void Problem::render()
 		    		dobjects[c+7] = 0.0; // ro->rgbcolor[2];
 		    		break;
 		    	case 4:
-		    		dobjects[c+5] = 255.0; //ro->rgbcolor[0];
-		    		dobjects[c+6] = 0.0; //ro->rgbcolor[1];
-		    		dobjects[c+7] = 255.0; // ro->rgbcolor[2];
+		    		dobjects[c+5] = -1.0; //ro->rgbcolor[0];
+		    		dobjects[c+6] = -1.0; //ro->rgbcolor[1];
+		    		dobjects[c+7] = -1.0; // ro->rgbcolor[2];
 		    		redLed = true;
 		    		blueLed = true;
 		    		break;
@@ -607,7 +454,22 @@ void Problem::render()
 
 double Problem::renderScale()
 {
-	return SCALE;
+	double scale;
+	// Scale depends on the robot type
+	switch(robottype)
+	{
+		case Khepera:
+			scale = SCALE;
+			break;
+		case ePuck:
+			scale = SCALE;
+			break;
+		case MarXBot:
+		default:
+			scale = SCALE * 2.0;
+			break;
+	}
+	return scale;
 }
 
 /*
@@ -623,14 +485,14 @@ void Problem::initEnvironment()
 	switch (robottype)
 	{
 	case (Khepera):
-	    	asize = 120.0;
+	    	nestsize = 250.0;
 		break;
 	case (ePuck):
-	    	asize = 160.0;
+	    	nestsize = 350.0; // Derived from Francesca et al. (2012)
 		break;
 	case (MarXBot):
 	default:
-	    	asize = 400.0;
+	    	nestsize = 500.0;
 		break;
 	}
 	
@@ -680,7 +542,7 @@ void Problem::initEnvironment()
 	  	envobjs[cobj].type = STARGETAREA;
 	  	envobjs[cobj].x = 400.0;
 	  	envobjs[cobj].y = 400.0;
-	  	envobjs[cobj].r = asize;
+	  	envobjs[cobj].r = nestsize;
 	  	envobjs[cobj].color[0] = 0.5;
 	  	envobjs[cobj].color[1] = 0.5;
 	  	envobjs[cobj].color[2] = 0.5;
@@ -708,8 +570,6 @@ void readEvoConfig()
     char *ptr;
     
     // Setting default values for distances (to avoid any numerical issue)
-    nestdist = 1000.0;
-    robotnestdist = 500.0;
     robotdist = 200.0;
     
     FILE* fp = fopen("ErAggregation.ini", "r");
@@ -745,18 +605,8 @@ void readEvoConfig()
             	robottype = (int)strtol(value, &ptr, 10);
             else if (strcmp(name, "wsize")==0)
             	wsize = strtod(value,&ptr);
-            else if (strcmp(name, "nnests")==0)
-            	nnests = (int)strtol(value, &ptr, 10);
-            else if (strcmp(name, "nestdist")==0)
-            	nestdist = strtod(value, &ptr);
-            else if (strcmp(name, "robotnestdist")==0)
-            	robotnestdist = strtod(value, &ptr);
             else if (strcmp(name, "robotdist")==0)
             	robotdist = strtod(value, &ptr);
-            else if (strcmp(name, "nestbonus")==0)
-           	nestBonus = strtod(value, &ptr);
-            else if (strcmp(name, "kdist")==0)
-            	kdist = strtod(value, &ptr);
             else if (strcmp(name, "nhiddens")==0)
             	nhiddens = (int)strtol(value, &ptr, 10);
             else if (strcmp(name, "afunction")==0)
@@ -767,50 +617,9 @@ void readEvoConfig()
     }
     else
     {
-        printf("ERROR: unable to open file ErForaging.ini\n");
+        printf("ERROR: unable to open file ErAggregation.ini\n");
         fflush(stdout);
     }
-}
-
-double calcNestRadius(int nr)
-{
-	double r;
-	if (nr <= 0)
-	{
-		printf("Invalid number of robots %d!!\n", nr);
-		exit(-1);
-	}
-	if (nr == 1)
-		r = rob->radius * 2.0;
-	else
-		r = rob->radius * (1.0 + (1.0 / sin((2.0 * M_PI) / (2.0 * nr))));
-	return r;
-}
-
-int calcRobots(double radius)
-{
-	int n;
-	double num;
-	if (radius <= 0.0)
-	{
-		printf("Invalid radius %lf\n", radius);
-		exit(-1);
-	}
-	// To compute the number of robots that can occupy the area, we must invert the formula computing the radius of thea area given the robots
-	// Compute ratio between radii
-	double r_ratio = radius / rob->radius;
-	// Now compute argument of arcsin operation...
-	// Remember that r = rob->radius * (1.0 + (1.0 / sin((2.0 * M_PI) / (2.0 * nr))))
-	// Therefore:
-	// 1) r / rob->radius = 1.0 + (1.0 / sin((2.0 * M_PI) / (2.0 * nr)))
-	// 2) (r / rob->radius - 1.0) = 1.0 / sin((2.0 * M_PI) / (2.0 * nr))
-	// 3) 1.0 / (r / rob->radius - 1.0) = sin((2.0 * M_PI) / (2.0 * nr))
-	// 4) arcsin((1.0 / (r / rob->radius - 1.0))) = M_PI / nr
-	// 5) nr = M_PI / arcsin((1.0 / (r / rob->radius - 1.0)))
-	double arg = asin(1.0 / (r_ratio - 1.0));
-	num = M_PI / arg;
-	n = ((double)num);
-	return n;
 }
 
 /*
@@ -1288,8 +1097,8 @@ void updateCameraSensorRFB(struct robot *cro, int *rbd, int noutputs)
  */
 int initGroundSensor(struct robot *cro)
 {
-  if (cro->idn == 0) printf("Sensor[%d]: ground color \n", 2);
-  return(2);
+  if (cro->idn == 0) printf("Sensor[%d]: ground \n", 3);
+  return(3);
 }
 
 void updateGroundSensor(struct robot *cro)
@@ -1297,9 +1106,9 @@ void updateGroundSensor(struct robot *cro)
 
 	int o;
 	double dx, dy, cdist;
-    double act[2];
+    double act[3];
 	
-	act[0] = act[1] = 0.0;
+	act[0] = act[1] = act[2] = 0.0;
 	
 	for (o=0; o < nenvobjs; o++)
 	 {
@@ -1310,13 +1119,14 @@ void updateGroundSensor(struct robot *cro)
 		cdist = sqrt((dx*dx)+(dy*dy));
 		if (cdist < envobjs[o].r)
 			{
-			  if (envobjs[o].color[0] < 0.25)
+			  /*if (envobjs[o].color[0] < 0.25)
 			    act[0] = 1.0;
 			   else
 			   {
 				if (envobjs[o].color[0] < 0.75)
 			            act[1] = 1.0;
-			   }
+			   }*/
+			   act[0] = act[1] = act[2] = 1.0;
 			 }
 		}
 	  }
@@ -1324,6 +1134,38 @@ void updateGroundSensor(struct robot *cro)
     cro->csensors++;
     *cro->csensors = act[1];
     cro->csensors++;
+    *cro->csensors = act[2];
+    cro->csensors++;
 }
 
+int initCommSensor(struct robot *cro)
+{
+  if (cro->idn == 0) printf("Sensor[%d]: communication \n", 1);
+  return(1);
+}
+
+void updateCommSensor(struct robot *cro)
+{
+	struct robot *ro;
+	int r;
+	double dx, dy;
+	double dist;
+	const double maxDist = 700.0; // Derived from Francesca et al. (2012)
+	int num;
+	
+	num = 0;
+	for (r = 0, ro = rob; r < nrobots; r++, ro++)
+    	{
+    		if (cro->idn != ro->idn)
+		{
+			dx = (cro->x - ro->x);
+			dy = (cro->y - ro->y);
+			dist = sqrt(dx*dx+dy*dy) - cro->radius;//(cro->radius * 2.0);
+			if (dist <= maxDist)
+				num++;
+		}
+    	}
+    	*cro->csensors = 1.0 - (2.0 / (1.0 + exp((double)num)));
+    	cro->csensors++;
+}
 

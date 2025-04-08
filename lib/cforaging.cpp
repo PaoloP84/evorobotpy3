@@ -376,9 +376,9 @@ void Problem::render()
         	}
         	dobjects[c+1] = envobjs[i].x * scale;
         	dobjects[c+2] = envobjs[i].y * scale;
-        	dobjects[c+5] = envobjs[i].color[0];
-        	dobjects[c+6] = envobjs[i].color[1];
-        	dobjects[c+7] = envobjs[i].color[2];
+        	dobjects[c+5] = envobjs[i].color[0] * 255.0;
+        	dobjects[c+6] = envobjs[i].color[1] * 255.0;
+        	dobjects[c+7] = envobjs[i].color[2] * 255.0;
         	c += 10;
     	}
     	// robots
@@ -400,7 +400,7 @@ void Problem::render()
 		    		dobjects[c+7] = 0.0; // ro->rgbcolor[2];
 		    		break;
 		    	case 1:
-            			dobjects[c+5] = 1.0; //ro->rgbcolor[0];
+            			dobjects[c+5] = 255.0; //ro->rgbcolor[0];
 		    		dobjects[c+6] = 0.0; //ro->rgbcolor[1];
 		    		dobjects[c+7] = 0.0; // ro->rgbcolor[2];
 		    		redLed = true;
@@ -408,18 +408,18 @@ void Problem::render()
 		    	case 2:
 		    		dobjects[c+5] = 0.0; //ro->rgbcolor[0];
 		    		dobjects[c+6] = 0.0; //ro->rgbcolor[1];
-		    		dobjects[c+7] = 1.0; // ro->rgbcolor[2];
+		    		dobjects[c+7] = 255.0; // ro->rgbcolor[2];
 		    		blueLed = true;
 		    		break;
 		    	case 3:
             			dobjects[c+5] = 0.0; //ro->rgbcolor[0];
-		    		dobjects[c+6] = 1.0; //ro->rgbcolor[1];
+		    		dobjects[c+6] = 255.0; //ro->rgbcolor[1];
 		    		dobjects[c+7] = 0.0; // ro->rgbcolor[2];
 		    		break;
 		    	case 4:
-		    		dobjects[c+5] = -1.0; //ro->rgbcolor[0];
-		    		dobjects[c+6] = -1.0; //ro->rgbcolor[1];
-		    		dobjects[c+7] = -1.0; // ro->rgbcolor[2];
+		    		dobjects[c+5] = 255.0; //ro->rgbcolor[0];
+		    		dobjects[c+6] = 0.0; //ro->rgbcolor[1];
+		    		dobjects[c+7] = 255.0; // ro->rgbcolor[2];
 		    		redLed = true;
 		    		blueLed = true;
 		    		break;
@@ -435,7 +435,7 @@ void Problem::render()
         		dobjects[c+2] = (ro->y + yvect(ro->dir, ro->radius / 2.0)) * scale;
 			dobjects[c+3] = ro->radius / 5.0 * scale;
 			dobjects[c+4] = 0.0;
-			dobjects[c+5] = 1.0; //ro->rgbcolor[0];
+			dobjects[c+5] = 255.0; //ro->rgbcolor[0];
 		    	dobjects[c+6] = 0.0; //ro->rgbcolor[1];
 		    	dobjects[c+7] = 0.0;
 		    	c += 10;
@@ -449,7 +449,7 @@ void Problem::render()
 			dobjects[c+4] = 0.0;
 			dobjects[c+5] = 0.0; //ro->rgbcolor[0];
 		    	dobjects[c+6] = 0.0; //ro->rgbcolor[1];
-		    	dobjects[c+7] = 1.0;
+		    	dobjects[c+7] = 255.0;
 		    	c += 10;
         	}
     	}

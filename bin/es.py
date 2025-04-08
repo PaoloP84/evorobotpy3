@@ -56,8 +56,8 @@ def parseConfigFile(filename):
         # We need here to load the number of agents from section policy
         options = config.options("POLICY")
         for o in options:
-          if o == "nrobots":
-            nagents = config.getint("POLICY","nrobots")
+            if o == "nrobots":
+                nagents = config.getint("POLICY","nrobots")
     else:
         print("\033[1mERROR: configuration file %s does not exist\033[0m" % (filename))
         sys.exit()
@@ -133,7 +133,7 @@ def main(argv):
 
     parseConfigFile(args.fileini)   # load hyperparameters from the ini file
 
-    availableAlgos = ('OpenAI-ES', 'SSS', 'CMA-ES', 'xNES', 'sNES', 'generational', 'generational_nmates', 'OpenAI-ES_nmates', 'OpenAI-ES_pop', 'Hill-Climber', 'generalist', 'coevo2', 'coevo', 'archivestar1', 'coevoarch', 'coevosinglepop', 'archivestar1singlepop', 'coevoarchsinglepop')   # check whether the user specified a valid algorithm
+    availableAlgos = ('OpenAI-ES', 'SSS', 'CMA-ES', 'xNES', 'sNES', 'generational', 'generational_nmates', 'OpenAI-ES_nmates', 'CMA-ES_nmates', 'Hill-Climber', 'evostick', 'evostick_nmates', 'generalist', 'coevo2', 'coevo', 'archivestar1', 'coevoarch', 'coevosinglepop', 'archivestar1singlepop', 'coevoarchsinglepop')   # check whether the user specified a valid algorithm
     if algoname not in availableAlgos:
         print("\033[1mAlgorithm %s is unknown\033[0m" % algoname)
         print("Please use one of the following algorithms:")
@@ -179,13 +179,14 @@ def main(argv):
         policy = BulletPolicy(env, args.fileini, args.seed, test)
     elif "Custom" in environment:              # Custom environment
         customEnv = __import__(environment)
-        env = customEnv.customEnv(render_mode=render_mode)        
+        env = customEnv.customEnv(render_mode=render_mode)   
         from policy import GymPolicy
         policy = GymPolicy(env, args.fileini, args.seed, test)      
     else:                                       # OpenAi Gym environment
         import gymnasium as gym
         from gymnasium import spaces
         add_env = False
+        no_net_env = False
         try:
             env = gym.make(environment, render_mode=render_mode)
         except:
@@ -236,10 +237,14 @@ def main(argv):
         from generational_nmates import Algo
     elif (algoname == 'OpenAI-ES_nmates'):
         from openaies_nmates import Algo
-    elif (algoname == 'OpenAI-ES_pop'):
-        from openaiespop import Algo
+    elif (algoname == 'CMA-ES_nmates'):
+        from cmaes_nmates import Algo
     elif (algoname == 'Hill-Climber'):
         from hillclimber import Algo
+    elif (algoname == 'evostick'):
+        from evostick import Algo
+    elif (algoname == 'evostick_nmates'):
+        from evostick_nmates import Algo
     elif (algoname == 'coevo' or algoname == 'generalist'):
         from coevo import Algo
     elif (algoname == 'coevo2'):

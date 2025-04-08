@@ -36,7 +36,8 @@ class Algo(EvoAlgo):
             self.noffspring = 10
             self.mutation = 0.02
             self.crossover = False
-            self.crossrate = 0.1
+            self.crossrate = 0.0
+            self.crosstype = 0
             self.elitism = False
             self.nmates = 1
             self.saveEveryN = 1
@@ -62,6 +63,9 @@ class Algo(EvoAlgo):
                     found = 1
                 if o == "crossrate":
                     self.crossrate = config.getfloat("ALGO","crossrate")
+                    found = 1
+                if o == "crosstype":
+                    self.crosstype = config.getint("ALGO","crosstype")
                     found = 1
                 if o == "elitism":
                     elitism = config.getint("ALGO","elitism")
@@ -102,7 +106,8 @@ class Algo(EvoAlgo):
 
     def initPop(self):
         for i in range(self.popSize):
-            self.pop[i] = self.policy.get_trainable_flat()
+            self.policy.nn.initWeights()
+            self.pop[i] = np.copy(self.policy.get_trainable_flat())
 
     def mutate(self, parent):
         child = np.zeros(self.nparams, dtype=np.float64)
@@ -113,13 +118,13 @@ class Algo(EvoAlgo):
                 child[g] += self.rg.uniform(-self.policy.wrange, self.policy.wrange)
         return child
 
-    def crossover(father, mother):
+    def runCrossover(self, father, mother):
         # We get length from smallest individual (in case of individuals with different lengths!!!)
         ngenes = len(father)
         if len(mother) < ngenes:
             ngenes = len(mother)
-        # Cross-over point is at half of the length
-        point = int(ngenes / 2)
+        # Cross-over point is randomly chosen
+        point = np.random.randint(0, ngenes)
         child = np.zeros(self.nparams, dtype=np.float64)
         other_child = np.zeros(self.nparams, dtype=np.float64)
         # Fill children
@@ -131,58 +136,83 @@ class Algo(EvoAlgo):
 
     def reproduce(self, index):
         bestid = []
+        bests = []
         for i in range(self.nreproducing):
             bestid.append(index[i])
-            self.bests.append(self.pop[index[i]])
+            bests.append(self.pop[index[i]])
         coupled = np.zeros(self.popSize, dtype=bool)
         # Now we must generate offspring for each reproducing individual
         for i in range(self.nreproducing):
+            cbest = bestid[i]
             j = 0
-            if coupled[i]:
+            if coupled[cbest]:
                 j = 1 # We already copied a child from previous coupling
             while j < self.noffspring:
-                if self.elitism:
+                if self.elitism and j == 0:
                     # First individual to be copied is the parent
-                    self.pop[(self.noffspring * i) + j] = self.bests[i]
+                    self.pop[(self.noffspring * i) + j] = bests[i]
                     j += 1
                 else:
                     if self.crossover:
-                        if not coupled[i]:
+                        if not coupled[cbest]:
                             # Extract a random value in the range [0,1]
                             coin = self.rg.uniform(0.0, 1.0)
                             if coin <= self.crossrate:
-                                # Cross-over 
-                                # Look for an individual to couple with (even between those not selected for reproduction)
-                                found = False
-                                ind = -1
-                                while not found:
-                                    ind = self.rg.randint(0, self.popSize)
-                                    if not coupled[ind]:
-                                        found = True
-                                assert ind >= 0, "Something went wrong in the while-loop, returned ind = %d!!!".format(ind)
-                                # Update flags
-                                coupled[i] = True
-                                coupled[ind] = True
-                                # We perform cross-over
-                                # Depending on the index of the partner, the individual can generate either one (if the partner is within the best selected ones) or two (if the partner does not belong to the best selected individuals)
-                                if ind in bestid:
-                                    # One offspring for each individual
-                                    self.pop[(self.noffspring * i) + j], self.pop[(self.noffspring * ind)] = self.crossover(self.bests[i], self.bests[ind]) # To be checked, it should be ok but a second check might be useful!!!! Maybe this overlaps a previously generated child!!!
-                                    j += 1
+                                if self.crosstype == 0:
+                                    # Asexual crossover
+                                    ngenes = len(bests[i])
+                                    point = np.random.randint(0, ngenes)
+                                    self.pop[(self.noffspring * i) + j][0:point] = bests[i][ngenes - point:]
+                                    self.pop[(self.noffspring * i) + j][point:] = bests[i][0:ngenes - point]
                                 else:
-                                    self.pop[(self.noffspring * i) + j], self.pop[(self.noffspring * i) + j + 1] = self.crossover(self.bests[i], self.bests[ind])
-                                    j += 2
+                                    # Sexual crossover
+                                    # Look for an individual to couple with (even between those not selected for reproduction)
+                                    found = False
+                                    ind = -1
+                                    while not found:
+                                        ind = self.rg.randint(0, self.popSize)
+                                        if ind != cbest and not coupled[ind]:
+                                            found = True
+                                    assert ind >= 0, "Something went wrong in the while-loop, returned ind = %d!!!".format(ind)
+                                    # Update flags
+                                    coupled[cbest] = True
+                                    coupled[ind] = True
+                                    # We perform cross-over
+                                    # Depending on the index of the partner, the individual can generate either one (if the partner is within the best selected ones) or two (if the partner does not belong to the best selected individuals)
+                                    if ind in bestid:
+                                        cother = bestid.index(ind)
+                                        cself = bestid.index(cbest)
+                                        if cself < cother:
+                                            # One offspring for each individual
+                                            self.pop[(self.noffspring * i) + j], self.pop[(self.noffspring * cother)] = self.runCrossover(bests[i], bests[cother]) # To be checked, it should be ok but a second check might be useful!!!! Maybe this overlaps a previously generated child!!!
+                                            j += 1
+                                        else:
+                                            if j < self.noffspring - 1:
+                                                self.pop[(self.noffspring * i) + j], self.pop[(self.noffspring * i) + j + 1] = self.runCrossover(bests[i], bests[cother])
+                                                j += 2
+                                            else:
+                                                # Mutation
+                                                self.pop[(self.noffspring * i) + j] = self.mutate(bests[i])
+                                                j += 1
+                                    else:
+                                        if j < self.noffspring - 1:
+                                            self.pop[(self.noffspring * i) + j], self.pop[(self.noffspring * i) + j + 1] = self.runCrossover(bests[i], self.pop[ind])
+                                            j += 2
+                                        else:
+                                            # Mutation
+                                            self.pop[(self.noffspring * i) + j] = self.mutate(bests[i])
+                                            j += 1
                             else:
                                 # Mutation
-                                self.pop[(self.noffspring * i) + j] = self.mutate(self.bests[i])
+                                self.pop[(self.noffspring * i) + j] = self.mutate(bests[i])
                                 j += 1
                         else:
                             # Mutation
-                            self.pop[(self.noffspring * i) + j] = self.mutate(self.bests[i])
+                            self.pop[(self.noffspring * i) + j] = self.mutate(bests[i])
                             j += 1
                     else:
                         # Mutation
-                        self.pop[(self.noffspring * i) + j] = self.mutate(self.bests[i])
+                        self.pop[(self.noffspring * i) + j] = self.mutate(bests[i])
                         j += 1
                         
     def generateMates(self, ind):
@@ -205,7 +235,6 @@ class Algo(EvoAlgo):
         self.pop = self.rg.randn(self.popSize, self.nparams) # population
         fitness = zeros(self.popSize)          # fitness
         self.stat = np.arange(0, dtype=np.float64) # initialize vector containing performance across generations
-        self.bests = []
 
         print("Generational with N-mates: seed %d maxsteps %d popSize %d mutRate %lf nMates %d" % (self.seed, self.maxsteps, self.popSize, self.mutation, self.nmates))
         

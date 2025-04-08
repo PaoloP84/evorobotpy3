@@ -318,14 +318,14 @@ void Problem::render()
         dobjects[c+4] = 0.0;
         if (i == 0)
           {
-            dobjects[c+5] = 1.0; //ro->rgbcolor[0];
-            dobjects[c+6] = 0.0; //ro->rgbcolor[1];
+            dobjects[c+5] = 0.0; //ro->rgbcolor[0];
+            dobjects[c+6] = 255.0; //ro->rgbcolor[1];
             dobjects[c+7] = 0.0; // ro->rgbcolor[2];
 		  }
 		 else
           {
-            dobjects[c+5] = 0.0; //ro->rgbcolor[0];
-            dobjects[c+6] = 1.0; //ro->rgbcolor[1];
+            dobjects[c+5] = 255.0; //ro->rgbcolor[0];
+            dobjects[c+6] = 0.0; //ro->rgbcolor[1];
             dobjects[c+7] = 0.0; // ro->rgbcolor[2];
 		  }
         dobjects[c+8] = (ro->x + xvect(ro->dir, ro->radius)) * scale;

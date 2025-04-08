@@ -49,9 +49,9 @@ class EvoAlgo(object):
         if testfile is not None:
             fname = os.path.join(self.filedir, testfile)
             if (self.policy.normalize == 0):
-                bestgeno = np.load(fname)
+                bestgeno = np.load(fname, allow_pickle=True)
             else:
-                geno = np.load(fname)
+                geno = np.load(fname, allow_pickle=True)
                 for i in range(self.policy.ninputs * 2):
                     self.policy.normvector[i] = geno[self.policy.nparams + i]
                 bestgeno = geno[0:self.policy.nparams]

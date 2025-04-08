@@ -51,14 +51,22 @@ class Algo(EvoAlgo):
                 if o == "saveeach":
                     self.saveeach = config.getint("ALGO","saveeach")
                     found = 1
-
+                if o == "nmates":
+                    self.nmates = config.getint("ALGO","nmates")
+                    found = 1
+                if o == "mating":
+                    self.mating = config.getint("ALGO","mating")
+                    found = 1
+                
                 if found == 0:
                     print("\033[1mOption %s in section [ALGO] of %s file is unknown\033[0m" % (o, self.fileini))
                     print("available hyperparameters are: ")
                     print("maxmsteps [integer]       : max number of (million) steps (default 1)")
                     print("batchsize [int]           : number of batches (default 20)")
                     print("saveeach [integer]        : save file every N minutes (default 60)")
-
+                    print("nmates [integer]          : the number of mates each sample is evaluated with")
+                    print("mating [0/1]              : types of mating (default 0 -> centroid is the partner), 1 -> random samples with random signs")
+                    
                     sys.exit()
         else:
             print("\033[1mERROR: configuration file %s does not exist\033[0m" % (self.fileini))
@@ -102,33 +110,98 @@ class Algo(EvoAlgo):
         self.tnormepisodes = 0.0                 # total epsidoes in which normalization data should be collected so far
         self.normepisodes = 0                    # numer of episodes in which normalization data has been actually collected so far
         self.normalizationdatacollected = False  # whether we collected data for updating the normalization vector
-       
+        # Data for sequential fitness
+        self.bestfitPost = -99999999
+        self.bestsolPost = None
+        self.bestgfitPost = -99999999
+        self.bestgsolPost = None
+        
     def savedata(self):
         self.save()             # save the best agent so far, the best postevaluated agent so far, and progress data across generations
+        # We save the centroid, the momentum vectors, the best fitnesses found, the generation and the number of steps performed so far
+        # Centroid
+        fname = os.path.join(self.filedir, "centerS" + str(self.seed))
+        np.save(fname, self.center)
+        # Centroid with normalization
+        fname = os.path.join(self.filedir, "centerNormS" + str(self.seed))
+        np.save(fname, np.append(self.center, self.policy.normvector))
+        # Best fitnesses
+        fname = os.path.join(self.filedir, "bestFitS" + str(self.seed) + ".txt")
+        fp = open(fname, "w")
+        fp.write("%lf\t%lf\n" % (self.bestfit, self.bestgfit))
+        fp.close()
+        # Generation and steps
+        fname = os.path.join(self.filedir, "genAndStepsS" + str(self.seed) + ".txt")
+        fp = open(fname, "w")
+        fp.write("%d\t%d\n" % (self.cgen, self.steps))
+        fp.close()
+        # Statistics
         fname = os.path.join(self.filedir, "S" + str(self.seed) + ".fit")
         fp = open(fname, "w")   # save summary
         fp.write('Seed %d (%.1f%%) gen %d msteps %d bestfit %.2f bestgfit %.2f bestsam %.2f avgfit %.2f paramsize %.2f \n' %
              (self.seed, self.steps / float(self.maxsteps) * 100, self.cgen, self.steps / 1000000, self.bestfit, self.bestgfit, self.bfit, self.avgfit, self.avecenter))
         fp.close()
         
+    def loaddata(self):
+        # We load the centroid, the momentum vectors, the best fitnesses found, the generation and the number of steps performed so far
+        # Centroid
+        fname = os.path.join(self.filedir, "centerS" + str(self.seed) + ".npy")
+        self.center = np.load(fname, allow_pickle=True)
+        self.avecenter = np.average(np.absolute(self.center))
+        # Best solutions
+        fname = os.path.join(self.filedir, "bestS" + str(self.seed) + ".npy")
+        self.bestsol = np.load(fname, allow_pickle=True)
+        fname = os.path.join(self.filedir, "bestgS" + str(self.seed) + ".npy")
+        self.bestgsol = np.load(fname, allow_pickle=True)
+        # Best fitnesses
+        fname = os.path.join(self.filedir, "bestFitS" + str(self.seed) + ".txt")
+        fit = np.loadtxt(fname)
+        assert len(fit) == 2, "Invalid number of fitness values!!!"
+        self.bestfit = fit[0]
+        self.bestgfit = fit[1]
+        # Generation and steps
+        fname = os.path.join(self.filedir, "genAndStepsS" + str(self.seed) + ".txt")
+        genAndSteps = np.loadtxt(fname)
+        assert len(genAndSteps) == 2, "Inconsistent number of data!!!"
+        self.cgen = int(genAndSteps[0])
+        self.steps = int(genAndSteps[1])
+        
+    def generateMates(self, ind):
+        mates = []
+        while len(mates) < self.nmates:
+            idx = np.random.randint(0, self.batchSize)
+            if idx != ind:
+                mates.append(idx)
+        assert len(mates) == self.nmates, "Something went wrong during the generation of mates!!!"
+        return mates
+ 
     def evaluate(self):
         cseed = self.seed + self.cgen * self.batchSize  # Set the seed for current generation (master and workers have the same seed)
         self.rs = np.random.RandomState(cseed)
         self.samples = self.rs.randn(self.nparams, self.batchSize)
         self.cgen += 1
+        
+        # Check that the task is multi-agent and requires heterogeneity, otherwise we cannot use N-mates method
+        heterogeneous = self.policy.is_heterogeneous
+        assert heterogeneous == 1, "Cannot use N-mates method with homogeneous agents"
 
         # Generate offspring
         self.offspring = tile(self.center.reshape(self.nparams, 1), (1, self.batchSize)) + self.stepsize * dot(dot(self.B, self.D), self.samples)
         for k in range(self.batchSize):
-            # Set policy parameters (corresponding to the current offspring)
-            self.policy.set_trainable_flat(self.offspring[:,k])
-            self.policy.nn.normphase(0) # normalization data is collected during the post-evaluation of the best sample of he previous generation
-            # Evaluate the offspring
-            eval_rews, eval_length = self.policy.rollout(self.policy.ntrials, seed=(self.seed + (self.cgen * self.batchSize) + k))
-            # Get the fitness
-            self.samplefitness[k] = eval_rews
-            # Update the number of evaluations
-            self.steps += eval_length
+            # Extract <nmates> random partners
+            mates = self.generateMates(k)
+            self.samplefitness[k] = 0.0
+            for i in range(self.nmates):
+                # Set policy parameters (corresponding to the current offspring)
+                self.policy.set_trainable_flat(np.concatenate((self.offspring[:,k], self.offspring[:,mates[i]])))
+                self.policy.nn.normphase(0) # normalization data is collected during the post-evaluation of the best sample of he previous generation
+                # Evaluate the offspring
+                eval_rews, eval_length = self.policy.rollout(self.policy.ntrials, seed=(self.seed + (self.cgen * self.batchSize) + k))
+                # Get the fitness
+                self.samplefitness[k] += eval_rews
+                # Update the number of evaluations
+                self.steps += eval_length
+            self.samplefitness[k] /= self.nmates
 
         # Sort by fitness and compute weighted mean into center
         self.fitness, self.index = descendent_sort(self.samplefitness)
@@ -137,24 +210,29 @@ class Algo(EvoAlgo):
         self.bfit = self.fitness[0]
         bidx = self.index[0]
         self.updateBest(self.bfit, self.offspring[:,bidx])                  # Stored if it is the best obtained so far
-        
+
         # postevaluate best sample of the last generation
         # in openaiesp.py this is done the next generation, move this section before the section "evaluate samples" to produce identical results
         gfit = 0
         if self.policy.nttrials > 0 and self.bestsol is not None:
-            self.policy.set_trainable_flat(self.bestsol)
-            self.tnormepisodes += self.inormepisodes
-            for t in range(self.policy.nttrials):
-                if self.policy.normalize == 1 and self.normepisodes < self.tnormepisodes:
-                    self.policy.nn.normphase(1)
-                    self.normepisodes += 1  # we collect normalization data
-                    self.normalizationdatacollected = True
-                else:
-                    self.policy.nn.normphase(0)
-                eval_rews, eval_length = self.policy.rollout(1, seed=(self.seed + 100000 + t))
-                gfit += eval_rews               
-                self.steps += eval_length
-            gfit /= self.policy.nttrials    
+            mates = self.generateMates(bidx)
+            for i in range(self.nmates):  
+                self.policy.set_trainable_flat(np.concatenate((self.bestsol, self.offspring[:,mates[i]])))
+                self.tnormepisodes += self.inormepisodes
+                cfit = 0.0
+                for t in range(self.policy.nttrials):
+                    if self.policy.normalize == 1 and self.normepisodes < self.tnormepisodes:
+                        self.policy.nn.normphase(1)
+                        self.normepisodes += 1  # we collect normalization data
+                        self.normalizationdatacollected = True
+                    else:
+                        self.policy.nn.normphase(0)
+                    eval_rews, eval_length = self.policy.rollout(1, seed=(self.seed + 100000 + t))
+                    cfit += eval_rews
+                    self.steps += eval_length
+                cfit /= self.policy.nttrials
+                gfit += cfit
+            gfit /= self.nmates   
             self.updateBestg(gfit, self.bestsol)
             
     def optimize(self):
@@ -208,6 +286,13 @@ class Algo(EvoAlgo):
         elapsed = 0
         self.steps = 0
         print("CMA-ES: seed %d maxmsteps %d batchSize %d nparams %d" % (self.seed, self.maxsteps / 1000000, self.batchSize, self.nparams))
+        
+        # Load data (if any)
+        try:
+            self.loaddata()
+        except:
+            #print("No data to be loaded or some errors occurred!!!")
+            pass
 
         while (self.steps < self.maxsteps):
             

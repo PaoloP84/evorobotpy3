@@ -48,9 +48,7 @@ class Policy(object):
         self.low = -1.0      # mimimum activation
         self.high = 1.0      # maximum activation
         self.morph_rate = None# rate of morphological variation
-        self.fit_id = None   # Fitness id (normally useless)
-        self.seq = None      # Whether to use sequential fitnesses
-        self.sum_comp = None # Whether to apply sum of components
+        self.hardcore = False
         # Read configuration file
         self.readConfig()
         # Overwrite heterogeneous if number of robots is 1
@@ -103,9 +101,9 @@ class Policy(object):
             self.env.setNSteps(self.maxsteps)
         except:
             pass
-        # Try to set the fitness type
+        # Try to set the hardcore flag
         try:
-            self.env.setFitness(self.fit_id, seq=self.seq, sumComp=self.sum_comp)
+            self.env.setHardcore(self.hardcore)
         except:
             pass
          
@@ -196,14 +194,8 @@ class Policy(object):
           if (o == "morph_rate"):
               self.morph_rate = config.getfloat("POLICY","morph_rate")
               found = 1
-          if (o == "fit_id"):
-              self.fit_id = config.getint("POLICY","fit_id")
-              found = 1
-          if (o == "seq"):
-              self.seq = config.getint("POLICY","seq")
-              found = 1
-          if (o == "sum_comp"):
-              self.sum_comp = config.getint("POLICY","sum_comp")
+          if (o == "hardcore"):
+              self.hardcore = bool(config.getint("POLICY","hardcore"))
               found = 1
           if (found == 0):
               print("\033[1mOption %s in section [POLICY] of %s file is unknown\033[0m" % (o, self.fileini))
@@ -248,7 +240,7 @@ class BulletPolicy(Policy):
                 rew += r
                 t += 1
                 if (self.test > 0):
-                    if (self.test == 1 and render):
+                    if (self.test == 1):
                         self.env.render()
                         time.sleep(0.05)
                     if (self.test == 2):
@@ -374,19 +366,26 @@ class ErPolicy(Policy):
         self.done = np.arange(1, dtype=np.int32) # allocate a done vector
         env.copyObs(self.ob)                     # pass the pointer to the observation vector to the Er environment
         env.copyAct(self.ac)                     # pass the pointer to the action vector to the Er environment
-        env.copyDone(self.done)                  # pass the pointer to the done vector to the Er environment    
+        env.copyDone(self.done)                  # pass the pointer to the done vector to the Er environment  
     # === Rollouts/training ===
     def rollout(self, ntrials, render=False, seed=None):
         rews = 0.0                               # summed reward
         steps = 0                                # steps performed
         # Set scale to render objects (default is 1.0)
         scale = 1.0 # Default value
+        width = 960
+        height = 720
         try:
             # Try to call the renderScale() method so as to modify the scale
             scale = self.env.renderScale()
             assert scale > 0.0, "Invalid scale!!!"
         except:
             # Environment does not have any renderScale() method -> nothing to do
+            pass
+        try:
+            # Try to call the get window sizes (width, height)
+            width, height = self.env.getWindowSizes()
+        except:
             pass
         if seed is not None:
             self.env.seed(seed)                  # set the seed of the environment that impacts on the initialization of the robot/environment
@@ -397,6 +396,7 @@ class ErPolicy(Policy):
             self.env.copyDobj(self.objs)
             import renderWorld2
             renderWorld2.setScale(scale)
+            renderWorld2.setWindow(width, height)
         for trial in range(ntrials):
             self.env.reset()                     # reset the environment at the beginning of a new episode
             self.nn.resetNet()                   # reset the activation of the neurons (necessary for recurrent policies)
@@ -408,6 +408,7 @@ class ErPolicy(Policy):
                 t += 1
                 if (self.test > 0):
                     self.env.render()
+                    time.sleep(0.05)
                     info = 'Trial %d Step %d Fit %.2f %.2f' % (trial, t, rew, rews)
                     renderWorld2.update(self.objs, info, self.ob, self.ac, self.nact)
                 if self.done:
@@ -455,6 +456,7 @@ class PolicyNoNet(Policy):
                 t += 1
                 if self.test > 0 and render:
                     self.env.render()
+                    #time.sleep(0.5)
                 if terminated or truncated:
                     break
             if (self.test > 0):

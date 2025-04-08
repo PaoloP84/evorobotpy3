@@ -119,6 +119,9 @@ class Algo(EvoAlgo):
         # Centroid
         fname = os.path.join(self.filedir, "centerS" + str(self.seed))
         np.save(fname, self.center)
+        # Centroid with normalization
+        fname = os.path.join(self.filedir, "centerNormS" + str(self.seed))
+        np.save(fname, np.append(self.center, self.policy.normvector))
         # Momentum vectors
         # m
         fname = os.path.join(self.filedir, "mS" + str(self.seed))

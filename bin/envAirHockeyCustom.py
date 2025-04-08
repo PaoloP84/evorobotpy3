@@ -452,8 +452,9 @@ class customEnv(gym.Env):
             fixtures = fixtureDef(shape = circleShape(radius=PUCK_RADIUS), friction=0.0, density=self.puckDensity, restitution=1.0)
             )
         self.puck.linearVelocity = (0,0)
-        self.puck.color1 = (0,0,0)
-        self.puck.color2 = (0,0,0)
+        # Puck color is blue
+        self.puck.color1 = (0,0,255)
+        self.puck.color2 = (0,0,255)
         # Set damping for the puck (both linear and angular)
         self.puck.linearDamping = 0.5
         self.puck.angularDamping = 0.5
@@ -466,9 +467,9 @@ class customEnv(gym.Env):
             fixtures = fixtureDef(shape = circleShape(radius=PADDLE_RADIUS), density=3.0, restitution=1.0),
             fixedRotation = True
             )
-        # Set color to red
-        paddle1.color1 = (255,0,0)
-        paddle1.color2 = (255,0,0)
+        # Set color to green
+        paddle1.color1 = (0,255,0)
+        paddle1.color2 = (0,255,0)
         paddle1.linearDamping = PADDLE_DAMPING
         paddle1.angularDamping = PADDLE_DAMPING
         self.paddles.append(paddle1)
@@ -479,9 +480,9 @@ class customEnv(gym.Env):
             fixtures = fixtureDef(shape = circleShape(radius=PADDLE_RADIUS), density=3.0, restitution=1.0),
             fixedRotation = True
             )
-        # Set color to blue
-        paddle2.color1 = (0,0,255)
-        paddle2.color2 = (0,0,255)
+        # Set color to red
+        paddle2.color1 = (255,0,0)
+        paddle2.color2 = (255,0,0)
         paddle2.linearDamping = PADDLE_DAMPING
         paddle2.angularDamping = PADDLE_DAMPING
         self.paddles.append(paddle2)
@@ -668,7 +669,7 @@ class customEnv(gym.Env):
             (self.scroll * SCALE + VIEWPORT_W, VIEWPORT_H),
             (self.scroll * SCALE, VIEWPORT_H),
             ], 
-            color=(230, 230, 255) 
+            color=(255, 255, 255) 
         )
         
         for obj in self.drawlist:
