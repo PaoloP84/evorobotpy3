@@ -62,6 +62,11 @@ class GridWorldEnv(gym.Env):
                 self._agent_location - self._target_location, ord=1
             )
         }
+        
+    def _is_out(self):
+        if self._agent_location[0] < 0 or self._agent_location[0] >= self.size or self._agent_location[1] < 0 or self._agent_location[1] >= self.size:
+            return True
+        return False
 
     def reset(self, seed=None):
         # Choose the agent's location uniformly at random
@@ -85,10 +90,12 @@ class GridWorldEnv(gym.Env):
     def step(self, action):
         # Map the action (element of {0,1,2,3}) to the direction we walk in
         direction = self._action_to_direction[action]
-        # We use `np.clip` to make sure we don't leave the grid
-        self._agent_location = np.clip(
-            self._agent_location + direction, 0, self.size - 1
-        )
+        # Update agent location
+        self._agent_location += direction
+        # Premature end if agent's new location is out of the grid world
+        truncated = False
+        if self._is_out():
+            truncated = True
         # An episode is done iff the agent has reached the target
         terminated = np.array_equal(self._agent_location, self._target_location)
         reward = 1 if terminated else 0  # Binary sparse rewards
@@ -98,7 +105,7 @@ class GridWorldEnv(gym.Env):
         if self.render_mode == "human":
             self._render_frame()
 
-        return observation, reward, terminated, False, info
+        return observation, reward, terminated, truncated, info
 
     def render(self):
         if self.render_mode == "rgb_array":
