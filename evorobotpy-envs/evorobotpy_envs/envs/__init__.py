@@ -37,12 +37,6 @@ register(
 )
 
 register(
-     id='evorobotpy_envs/DTMazeEnv-v0',
-     entry_point="evorobotpy_envs.envs.dtmaze_env:DTMazeEnv",
-     max_episode_steps=500,
-)
-
-register(
     id='evorobotpy_envs/GameOfLife-v0',
     entry_point="evorobotpy_envs.envs.gameoflife:GameOfLifeEnv",
 )

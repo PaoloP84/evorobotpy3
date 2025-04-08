@@ -17,14 +17,9 @@ class GridWorldEnv(gym.Env):
         self.size = size
         self.window_size = 512 # Pygame window size
         
-        # Observations are dictionaries with the agent's and the target's location.
-        # Each location is encoded as an element of {0, ..., `size`}^2, i.e. MultiDiscrete([size, size]).
-        self.observation_space = spaces.Dict(
-            {
-                "agent": spaces.Box(0, size - 1, shape=(2,), dtype=int),
-                "target": spaces.Box(0, size - 1, shape=(2,), dtype=int),
-            }
-        )
+        # Observations are encoded in a list with the agent's and the target's location.
+        high = np.array([np.inf] * 4, dtype=np.float32)
+        self.observation_space = spaces.Box(-high, high, dtype=np.float32)
 
         # We have 4 actions, corresponding to "right", "up", "left", "down"
         self.action_space = spaces.Discrete(4)
@@ -59,7 +54,7 @@ class GridWorldEnv(gym.Env):
         return [seed]
 
     def _get_obs(self):
-        return {"agent": self._agent_location, "target": self._target_location}
+        return np.concatenate((self._agent_location, self._target_location))
 
     def _get_info(self):
         return {
