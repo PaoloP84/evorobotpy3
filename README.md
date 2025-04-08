@@ -1,6 +1,8 @@
 # evorobotpy3
 Evorobotpy3 is a flexible and easy-to-use simulation tool allowing users to implement and test algorithms. The tool provides a list of benchmark problems like classic control, robot locomotion, swarm robotics, competitive co-evolution and others. Evorobotpy3 contains a lot algorithms ranging from classic Evolutionary Algorithms (evostick, generational genetic algorithm, hill-climbing, steady-state) to modern Evolutionary Strategies (CMA-ES, OpenAI-ES, sNES, xNES), and supports the use of RL methods like PPO. In addition, the users can define controllers through different types of neural networks (feed-forward, recurrent, LSTM).
 
+One of the most import features of evorobotpy3 is its usability: users can run experiments by specifying all the parameters in a configuration file (see file config.ini in the homepage of the repo).
+
 Please use this BibTeX to cite this repository in your publications:
 ```
 @inproceedings{evorobotpy3,
