@@ -3,7 +3,7 @@ Evorobotpy3 is a flexible and easy-to-use simulation tool allowing users to impl
 
 One of the most import features of evorobotpy3 is its usability: users can run experiments by specifying all the parameters in a configuration file (see file config.ini in the homepage of the repo).
 
-Evorobotpy3 will be presented in the forthcoming edition of the Genetic and Evolutionary Computation Conference (GECCO 2025).
+Evorobotpy3 has been presented during the 2025 Genetic and Evolutionary Computation Conference (GECCO 2025).
 
 Please use this BibTeX to cite this repository in your publications:
 ```
