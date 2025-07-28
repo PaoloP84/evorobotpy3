@@ -45,3 +45,9 @@ register(
     id='evorobotpy_envs/DoublePole-v0',
     entry_point="evorobotpy_envs.envs.doublepole:DoublePoleEnv",
 )
+
+register(
+    id='evorobotpy_envs/DoubleTMaze-v0',
+    entry_point="evorobotpy_envs.envs.doubletmaze:DoubleTMazeEnv",
+)
+
