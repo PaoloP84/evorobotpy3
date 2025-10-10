@@ -85,7 +85,7 @@ class DoublePoleEnv(gym.Env):
         "render_fps": 50,
     }
 
-    def __init__(self, render_mode: Optional[str] = None, options: Optional[dict] = None):#markov: Optional[bool] = True, fixed: Optional[bool] = False, classic: Optional[bool] = False, long_poles: Optional[bool] = False):
+    def __init__(self, render_mode: Optional[str] = None, options: Optional[dict] = None):
         self.markov = False
         self.fixed = False
         self.classic = False
@@ -345,38 +345,6 @@ class DoublePoleEnv(gym.Env):
         gfxdraw.aapolygon(self.surf, pole_coords, (0, 255, 255))
         gfxdraw.filled_polygon(self.surf, pole_coords, (0, 255, 255))
 
-        """
-        gfxdraw.aacircle(
-            self.surf,
-            int(cartx - cartwidth / 4),
-            int(carty + axleoffset + cartheight / 4),
-            int(polewidth / 2),
-            (128, 128, 128),
-        )
-        gfxdraw.filled_circle(
-            self.surf,
-            int(cartx - cartwidth / 4),
-            int(carty + axleoffset + cartheight / 4),
-            int(polewidth / 2),
-            (128, 128, 128),
-        )
-        
-        gfxdraw.aacircle(
-            self.surf,
-            int(cartx + cartwidth / 4),
-            int(carty + axleoffset + cartheight / 4),
-            int(polewidth / 2),
-            (128, 128, 128),
-        )
-        gfxdraw.filled_circle(
-            self.surf,
-            int(cartx + cartwidth / 4),
-            int(carty + axleoffset + cartheight / 4),
-            int(polewidth / 2),
-            (128, 128, 128),
-        )
-        """
-        
         # First wheel
         gfxdraw.aacircle(
             self.surf,
