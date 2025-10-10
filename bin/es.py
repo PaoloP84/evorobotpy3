@@ -27,12 +27,14 @@ from evorobotpy_envs import *
 environment = None                      # the problem 
 algoname = "OpenAI-ES"                  # evolutionary algorithm
 nagents = 1
+optdict = dict()
 
 # Parse the [ADAPT] section of the configuration file
 def parseConfigFile(filename):
     global environment
     global algoname
     global nagents
+    global optdict
 
     if os.path.isfile(filename):
 
@@ -57,7 +59,15 @@ def parseConfigFile(filename):
         options = config.options("POLICY")
         for o in options:
             if o == "nrobots":
-                nagents = config.getint("POLICY","nrobots")
+                optdict[o] = config.getint("POLICY","nrobots")
+        # Here we check any possible optional parameter to be used for the creation of the environment (if ENV section exists)
+        try:
+            options = config.options("ENV")
+            for o in options:
+                optdict[o] = config.getint("ENV",o)
+        except:
+            print("File %s does not contain section ENV" % filename)
+            pass
     else:
         print("\033[1mERROR: configuration file %s does not exist\033[0m" % (filename))
         sys.exit()
@@ -112,6 +122,7 @@ def main(argv):
     global environment
     global algoname
     global nagents
+    global optdict
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--fileini', help='name of ini file', type=str, default="")
@@ -173,13 +184,12 @@ def main(argv):
         from gymnasium import spaces
         import pybullet
         import pybullet_envs
-        #environment = os.path.join("pybullet_envs", environment)
-        env = gym.make(environment, render_mode=render_mode, nrobots=nagents)
+        env = gym.make(environment, render_mode=render_mode, options=optdict)
         from policy import BulletPolicy
         policy = BulletPolicy(env, args.fileini, args.seed, test)
     elif "Custom" in environment:              # Custom environment
         customEnv = __import__(environment)
-        env = customEnv.customEnv(render_mode=render_mode)   
+        env = customEnv.customEnv(render_mode=render_mode, options=optdict)   
         from policy import GymPolicy
         policy = GymPolicy(env, args.fileini, args.seed, test)      
     else:                                       # OpenAi Gym environment
@@ -188,12 +198,12 @@ def main(argv):
         add_env = False
         no_net_env = False
         try:
-            env = gym.make(environment, render_mode=render_mode)
+            env = gym.make(environment, render_mode=render_mode, options=optdict)
         except:
             print(f"Environment {environment} is not registered in gymnasium... Look for it in evorobotpy_envs!")
             try:
-                envname = "evorobotpy_envs/" + environment
-                env = gym.make(envname, render_mode=render_mode)
+                envname = os.path.join("evorobotpy_envs", environment)
+                env = gym.make(envname, render_mode=render_mode, options=optdict)
                 add_env = True
                 no_net_env = False
                 try:

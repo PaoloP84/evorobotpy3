@@ -8,13 +8,13 @@ from typing import TYPE_CHECKING, List, Optional
 
 class WalkerBaseBulletEnv(MJCFBaseBulletEnv):
 
-  def __init__(self, render_mode: Optional[str] = None, nrobots: Optional[int] = 1, robot=None):
+  def __init__(self, render_mode: Optional[str] = None, options: Optional[dict] = None, robot=None):
     # print("WalkerBase::__init__ start")
     self.camera_x = 0
     self.walk_target_x = 1e3  # kilometer away
     self.walk_target_y = 0
     self.stateId = -1
-    MJCFBaseBulletEnv.__init__(self, render_mode=render_mode, robot=robot)
+    MJCFBaseBulletEnv.__init__(self, render_mode=render_mode, options=options, robot=robot)
 
 
   def create_single_player_scene(self, bullet_client):
@@ -135,23 +135,23 @@ class WalkerBaseBulletEnv(MJCFBaseBulletEnv):
 
 class HopperBulletEnv(WalkerBaseBulletEnv):
 
-  def __init__(self, render_mode: Optional[str] = None, nrobots: Optional[int] = 1):
+  def __init__(self, render_mode: Optional[str] = None, options: Optional[dict] = None):
     self.robot = Hopper()
-    WalkerBaseBulletEnv.__init__(self, render_mode=render_mode, robot=self.robot)
+    WalkerBaseBulletEnv.__init__(self, render_mode=render_mode, options=options, robot=self.robot)
 
 
 class Walker2DBulletEnv(WalkerBaseBulletEnv):
 
-  def __init__(self, render_mode: Optional[str] = None, nrobots: Optional[int] = 1):
+  def __init__(self, render_mode: Optional[str] = None, options: Optional[dict] = None):
     self.robot = Walker2D()
-    WalkerBaseBulletEnv.__init__(self, render_mode=render_mode, robot=self.robot)
+    WalkerBaseBulletEnv.__init__(self, render_mode=render_mode, options=options, robot=self.robot)
 
 
 class HalfCheetahBulletEnv(WalkerBaseBulletEnv):
 
-  def __init__(self, render_mode: Optional[str] = None, nrobots: Optional[int] = 1):
+  def __init__(self, render_mode: Optional[str] = None, options: Optional[dict] = None):
     self.robot = HalfCheetah()
-    WalkerBaseBulletEnv.__init__(self, render_mode=render_mode, robot=self.robot)
+    WalkerBaseBulletEnv.__init__(self, render_mode=render_mode, options=options, robot=self.robot)
 
   def _isDone(self):
     return False
@@ -159,19 +159,19 @@ class HalfCheetahBulletEnv(WalkerBaseBulletEnv):
 
 class AntBulletEnv(WalkerBaseBulletEnv):
 
-  def __init__(self, render_mode: Optional[str] = None, nrobots: Optional[int] = 1):
+  def __init__(self, render_mode: Optional[str] = None, options: Optional[dict] = None):
     self.robot = Ant()
-    WalkerBaseBulletEnv.__init__(self, render_mode=render_mode, robot=self.robot)
+    WalkerBaseBulletEnv.__init__(self, render_mode=render_mode, options=options, robot=self.robot)
 
 
 class HumanoidBulletEnv(WalkerBaseBulletEnv):
 
-  def __init__(self, render_mode: Optional[str] = None, nrobots: Optional[int] = 1, robot=None):
+  def __init__(self, render_mode: Optional[str] = None, options: Optional[dict] = None, robot=None):
     if robot is None:
       self.robot = Humanoid()
     else:
       self.robot = robot
-    WalkerBaseBulletEnv.__init__(self, render_mode=render_mode, robot=self.robot)
+    WalkerBaseBulletEnv.__init__(self, render_mode=render_mode, options=options, robot=self.robot)
     self.electricity_cost = 4.25 * WalkerBaseBulletEnv.electricity_cost
     self.stall_torque_cost = 4.25 * WalkerBaseBulletEnv.stall_torque_cost
 
@@ -179,9 +179,9 @@ class HumanoidBulletEnv(WalkerBaseBulletEnv):
 class HumanoidFlagrunBulletEnv(HumanoidBulletEnv):
   random_yaw = True
 
-  def __init__(self, render_mode: Optional[str] = None), nrobots: Optional[int] = 1:
+  def __init__(self, render_mode: Optional[str] = None, options: Optional[dict] = None):
     self.robot = HumanoidFlagrun()
-    HumanoidBulletEnv.__init__(self, render_mode=render_mode, robot=self.robot)
+    HumanoidBulletEnv.__init__(self, render_mode=render_mode, options=options, robot=self.robot)
 
   def create_single_player_scene(self, bullet_client):
     s = HumanoidBulletEnv.create_single_player_scene(self, bullet_client)
@@ -192,10 +192,10 @@ class HumanoidFlagrunBulletEnv(HumanoidBulletEnv):
 class HumanoidFlagrunHarderBulletEnv(HumanoidBulletEnv):
   random_lean = True  # can fall on start
 
-  def __init__(self, render_mode: Optional[str] = None, nrobots: Optional[int] = 1):
+  def __init__(self, render_mode: Optional[str] = None, options: Optional[dict] = None):
     self.robot = HumanoidFlagrunHarder()
     self.electricity_cost /= 4  # don't care that much about electricity, just stand up!
-    HumanoidBulletEnv.__init__(self, render_mode=render_mode, robot=self.robot)
+    HumanoidBulletEnv.__init__(self, render_mode=render_mode, options=options, robot=self.robot)
 
   def create_single_player_scene(self, bullet_client):
     s = HumanoidBulletEnv.create_single_player_scene(self, bullet_client)

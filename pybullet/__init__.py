@@ -236,8 +236,8 @@ register(id='HumanoidBulletEnv-v5',
          entry_point='pybullet_envs.gym_locomotion_envs2:HumanoidBulletEnv',
          max_episode_steps=1000)
          
-register(id='HalfCheetahMultiBulletEnv-v0',
-         entry_point='pybullet_envs.gym_locomotion_envs2:HalfCheetahMultiBulletEnv',
+register(id='HalfCheetahSwarmBulletEnv-v0',
+         entry_point='pybullet_envs.gym_locomotion_envs2:HalfCheetahSwarmBulletEnv',
          max_episode_steps=1000,
          reward_threshold=3000.0)
          

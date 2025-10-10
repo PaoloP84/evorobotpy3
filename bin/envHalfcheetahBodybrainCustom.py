@@ -123,7 +123,7 @@ class customEnv(gym.Env):
     # Segment angles
     angle_param = [-1.002, -2.678, -1.271, -2.099, -0.945, -0.999] # From half_cheetah.xml (pybullet_data/mjcf)
 
-    def __init__(self, render_mode: Optional[str] = None):
+    def __init__(self, render_mode: Optional[str] = None, options: Optional[dict] = None):#hardcore: bool = False):
         self.seed()
         self.viewer = None
 
@@ -134,6 +134,12 @@ class customEnv(gym.Env):
         self.prev_shaping = None
 
         self.hardcore = False
+        if options is not None:
+            print(options)
+            try:
+                self.hardcore = bool(options['hardcore'])
+            except:
+                pass
 
         self.fd_polygon = fixtureDef(
                         shape = polygonShape(vertices=
@@ -356,9 +362,6 @@ class customEnv(gym.Env):
             self.rate = MOD_RATE
         else:
             self.rate = rate
-            
-    def setHardcore(self, hardcore):
-        self.hardcore = hardcore
 
     def setTest(self):
         # Set test flag
@@ -677,10 +680,10 @@ class customEnv(gym.Env):
 
         # Flags whether the robot is on the ground (i.e., at least one segment touches the ground)
         self.onGround = False
-        """
+
         if self.render_mode == "human":
             self.render()
-        """
+
         return self.step(np.array(fakeAction))[0], {} # self._step
 
     def step(self, action): # _step
@@ -813,10 +816,10 @@ class customEnv(gym.Env):
                 print(self.cstep, self.nsteps, (self.nsteps - self.cstep))
 
         self.timer += 1
-        """
+
         if self.render_mode == "human":
             self.render()
-        """
+
         return np.array(state, dtype=np.float32), reward, terminated, False, {}
 
     def render(self, mode='human', close=False): # _render

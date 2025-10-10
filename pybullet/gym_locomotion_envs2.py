@@ -3,7 +3,7 @@ from .scene_stadium import SinglePlayerStadiumScene
 from .env_bases import MJCFBaseBulletEnv
 import numpy as np
 import pybullet
-from robot_locomotors2 import Hopper, Walker2D, HalfCheetah, Ant, Humanoid, HumanoidFlagrun, HumanoidFlagrunHarder, HalfCheetahMulti, AntSwarm
+from robot_locomotors2 import Hopper, Walker2D, HalfCheetah, Ant, Humanoid, HumanoidFlagrun, HumanoidFlagrunHarder, HalfCheetahSwarm, AntSwarm
 from typing import TYPE_CHECKING, List, Optional
 from .env_multiagent_bases import MJCFMultiAgentBaseBulletEnv
 import math
@@ -11,14 +11,14 @@ import sys
 
 class WalkerBaseBulletEnv(MJCFBaseBulletEnv):
 
-  def __init__(self, render_mode: Optional[str] = None, nrobots: Optional[int] = 1, robot=None):
+  def __init__(self, render_mode: Optional[str] = None, options: Optional[dict] = None, robot=None):
     # print("WalkerBase::__init__ start")
 
     self.camera_x = 0
     self.walk_target_x = 1e3  # kilometer away
     self.walk_target_y = 0
     self.stateId = -1
-    MJCFBaseBulletEnv.__init__(self, render_mode=render_mode, nrobots=nrobots, robot=robot)
+    MJCFBaseBulletEnv.__init__(self, render_mode=render_mode, options=options, robot=robot)
 
 
   def create_single_player_scene(self, bullet_client):
@@ -139,9 +139,9 @@ class WalkerBaseBulletEnv(MJCFBaseBulletEnv):
 
 class HopperBulletEnv(WalkerBaseBulletEnv):
 
-  def __init__(self, render_mode: Optional[str] = None, nrobots: Optional[int] = 1):
+  def __init__(self, render_mode: Optional[str] = None, options: Optional[dict] = None):
     self.robot = Hopper()
-    WalkerBaseBulletEnv.__init__(self, render_mode=render_mode, nrobots=nrobots, robot=self.robot)
+    WalkerBaseBulletEnv.__init__(self, render_mode=render_mode, options=options, robot=self.robot)
     print("PyBullet Hopper-v5: reward = progress")
 
   def step(self, a):
@@ -185,9 +185,9 @@ class HopperBulletEnv(WalkerBaseBulletEnv):
 
 class Walker2DBulletEnv(WalkerBaseBulletEnv):
 
-  def __init__(self, render_mode: Optional[str] = None, nrobots: Optional[int] = 1):
+  def __init__(self, render_mode: Optional[str] = None, options: Optional[dict] = None):
     self.robot = Walker2D()
-    WalkerBaseBulletEnv.__init__(self, render_mode=render_mode, nrobots=nrobots, robot=self.robot)
+    WalkerBaseBulletEnv.__init__(self, render_mode=render_mode, options=options, robot=self.robot)
     print("PyBullet Walker2d-v5: reward = progress")
     self.oldz = 0
 
@@ -233,9 +233,9 @@ class Walker2DBulletEnv(WalkerBaseBulletEnv):
 
 class HalfCheetahBulletEnv(WalkerBaseBulletEnv):
 
-  def __init__(self, render_mode: Optional[str] = None, nrobots: Optional[int] = 1):
+  def __init__(self, render_mode: Optional[str] = None, options: Optional[dict] = None):
     self.robot = HalfCheetah()
-    WalkerBaseBulletEnv.__init__(self, render_mode=render_mode, nrobots=nrobots, robot=self.robot)
+    WalkerBaseBulletEnv.__init__(self, render_mode=render_mode, options=options, robot=self.robot)
     print("PyBullet Halfcheetah-v5: reward = progress + (njoint_at_limit * -0.1), terminate also when z < 0.3")
 
   def _isDone(self):
@@ -286,9 +286,9 @@ class HalfCheetahBulletEnv(WalkerBaseBulletEnv):
 
 class AntBulletEnv(WalkerBaseBulletEnv):
 
-  def __init__(self, render_mode: Optional[str] = None, nrobots: Optional[int] = 1):
+  def __init__(self, render_mode: Optional[str] = None, options: Optional[dict] = None):
     self.robot = Ant()
-    WalkerBaseBulletEnv.__init__(self, render_mode=render_mode, nrobots=nrobots, robot=self.robot)
+    WalkerBaseBulletEnv.__init__(self, render_mode=render_mode, options=options, robot=self.robot)
     print("PyBullet Ant-v5: reward = progress + 0.01 + (torque_cost * -0.01) + (nJointLimit * -0.1)")
 
   def step(self, a):
@@ -335,9 +335,9 @@ class AntBulletEnv(WalkerBaseBulletEnv):
 
 class HumanoidBulletEnv(WalkerBaseBulletEnv):
 
-  def __init__(self, render_mode: Optional[str] = None, nrobots: Optional[int] = 1, robot=Humanoid()):
+  def __init__(self, render_mode: Optional[str] = None, options: Optional[dict] = None, robot=Humanoid()):
     self.robot = robot
-    WalkerBaseBulletEnv.__init__(self, render_mode=render_mode, nrobots=nrobots, robot=self.robot)
+    WalkerBaseBulletEnv.__init__(self, render_mode=render_mode, options=options, robot=self.robot)
     print("PyBullet Humanoid-v5: reward = progress + 1.0 + (jexcess * -10.0) + (nJLimits * -0.1) + (angleoffset * -0.1): init_range [-0.03,0.03]")
 
   def step(self, a):
@@ -402,9 +402,9 @@ class HumanoidBulletEnv(WalkerBaseBulletEnv):
 class HumanoidFlagrunBulletEnv(HumanoidBulletEnv):
   random_yaw = True
 
-  def __init__(self, render_mode: Optional[str] = None, nrobots: Optional[int] = 1):
+  def __init__(self, render_mode: Optional[str] = None, options: Optional[dict] = None):
     self.robot = HumanoidFlagrun()
-    HumanoidBulletEnv.__init__(self, render_mode=render_mode, nrobots=nrobots, robot=self.robot)
+    HumanoidBulletEnv.__init__(self, render_mode=render_mode, options=options, robot=self.robot)
 
   def create_single_player_scene(self, bullet_client):
     s = HumanoidBulletEnv.create_single_player_scene(self, bullet_client)
@@ -462,30 +462,35 @@ class HumanoidFlagrunBulletEnv(HumanoidBulletEnv):
 class HumanoidFlagrunHarderBulletEnv(HumanoidBulletEnv):
   random_lean = True  # can fall on start
 
-  def __init__(self, render_mode: Optional[str] = None, nrobots: Optional[int] = 1):
+  def __init__(self, render_mode: Optional[str] = None, options: Optional[dict] = None):
     self.robot = HumanoidFlagrunHarder()
     self.electricity_cost /= 4  # don't care that much about electricity, just stand up!
-    HumanoidBulletEnv.__init__(self, render_mode=render_mode, nrobots=nrobots, robot=self.robot)
+    HumanoidBulletEnv.__init__(self, render_mode=render_mode, options=options, robot=self.robot)
 
   def create_single_player_scene(self, bullet_client):
     s = HumanoidBulletEnv.create_single_player_scene(self, bullet_client)
     s.zero_at_running_strip_start_line = False
     return s
     
-class HalfCheetahMultiBulletEnv(MJCFMultiAgentBaseBulletEnv):
+class HalfCheetahSwarmBulletEnv(MJCFMultiAgentBaseBulletEnv):
 
   foot_ground_object_names = set(["floor"])  # to distinguish ground and other objects
   joints_at_limit_cost = -0.1  # discourage stuck joints
 
-  def __init__(self, render_mode: Optional[str] = None, nrobots: Optional[int] = 2):
-    self.nrobots = nrobots
+  def __init__(self, render_mode: Optional[str] = None, options: Optional[dict] = None):
+    self.nrobots = 2 # Minimum number of agents to define the task as a swarm one
+    if options is not None:
+        try:
+            self.nrobots = int(options['nrobots'])
+        except:
+            pass
     self.robots = []
     for r in range(self.nrobots):
-      self.robots.append(HalfCheetahMulti(robotId=r))
+      self.robots.append(HalfCheetahSwarm(robotId=r))
     self.camera_x = 0
     self.stateId = -1
-    MJCFMultiAgentBaseBulletEnv.__init__(self, render_mode=render_mode, nrobots=self.nrobots, robots=self.robots)
-    print("PyBullet HalfcheetahMulti-v0: reward = progress + (njoint_at_limit * -0.1), terminate also when z < 0.3")
+    MJCFMultiAgentBaseBulletEnv.__init__(self, render_mode=render_mode, options=options, robots=self.robots)
+    print("PyBullet HalfcheetahSwarm-v0: reward = progress + (njoint_at_limit * -0.1), terminate also when z < 0.3")
     
   def create_single_player_scene(self, bullet_client):
     # It is weird but using multi-player is not trivial
@@ -586,8 +591,13 @@ class AntSwarmBulletEnv(MJCFMultiAgentBaseBulletEnv):
 
   foot_ground_object_names = set(["floor"])  # to distinguish ground and other objects
   
-  def __init__(self, render_mode: Optional[str] = None, nrobots: Optional[int] = 2):
-    self.nrobots = nrobots
+  def __init__(self, render_mode: Optional[str] = None, options: Optional[dict] = None):
+    self.nrobots = 2 # Minimum number of agents to define the task as a swarm one
+    if options is not None:
+        try:
+            self.nrobots = int(options['nrobots'])
+        except:
+            pass
     self.robots = []
     for r in range(self.nrobots):
       self.robots.append(AntSwarm(robotId=r))

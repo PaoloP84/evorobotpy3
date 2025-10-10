@@ -123,7 +123,7 @@ class customEnv(gym.Env):
         "render_fps": FPS,
     }
 
-    def __init__(self, render_mode: Optional[str] = None, nagents: Optional[int] = NUM_AGENTS):
+    def __init__(self, render_mode: Optional[str] = None, options: Optional[dict] = None):
         self.seed()
         self.viewer = None
 
@@ -135,7 +135,20 @@ class customEnv(gym.Env):
         self.agentDensity = AGENT_DENSITY
         self.drawlist = []
         # Number of agents
-        self.nagents = nagents
+        self.nagents = NUM_AGENTS
+        # Number of objects
+        self.nobjects = NUM_OBJECTS
+        if options is not None:
+            # Get the number of agents (if any)
+            try:
+                self.nagents = int(options['nrobots'])
+            except:
+                pass
+            # Get the number of objects (if any)
+            try:
+                self.nobjects = int(options['nobjects'])
+            except:
+                pass
 
         self.prev_shaping = None
 
@@ -363,7 +376,7 @@ class customEnv(gym.Env):
         objectAngle = 0.0 # Useless
         # Object
         self.objects = []
-        for elem in range(NUM_OBJECTS):
+        for elem in range(self.nobjects):
             ok = False
             cpos = None
             while not ok:

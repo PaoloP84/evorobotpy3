@@ -48,7 +48,6 @@ class Policy(object):
         self.low = -1.0      # mimimum activation
         self.high = 1.0      # maximum activation
         self.morph_rate = None# rate of morphological variation
-        self.hardcore = False
         # Read configuration file
         self.readConfig()
         # Overwrite heterogeneous if number of robots is 1
@@ -91,19 +90,11 @@ class Policy(object):
                 self.params[(self.nparams - self.nmorphparams + i)] = 0.0
             # Set the morphological variation rate
             self.env.setParams(self.params[-self.nmorphparams:], rate=self.morph_rate)
-        # Try to set the number of agents
-        try:
-            self.env.setNAgents(self.nrobots)
-        except:
-            pass
         # Try to set the number of steps
         try:
             self.env.setNSteps(self.maxsteps)
         except:
             pass
-        # Try to set the hardcore flag
-        try:
-            self.env.setHardcore(self.hardcore)
         except:
             pass
          
@@ -193,9 +184,6 @@ class Policy(object):
               found = 1  
           if (o == "morph_rate"):
               self.morph_rate = config.getfloat("POLICY","morph_rate")
-              found = 1
-          if (o == "hardcore"):
-              self.hardcore = bool(config.getint("POLICY","hardcore"))
               found = 1
           if (found == 0):
               print("\033[1mOption %s in section [POLICY] of %s file is unknown\033[0m" % (o, self.fileini))

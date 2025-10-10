@@ -30,7 +30,7 @@ class MJCFMultiAgentBaseBulletEnv(gym.Env):
         "render_fps": 60,
     }
 
-  def __init__(self, render_mode: Optional[str] = None, nrobots: Optional[int] = 2, robots=[]):
+  def __init__(self, render_mode: Optional[str] = None, options: Optional[dict] = None, robots=[]):
     self.scene = None
     self.physicsClientId = -1
     self.ownsPhysicsClient = 0

@@ -118,6 +118,42 @@ def update(wobj, info, ob, ac, nact):
                 center=(START_W + wobj[c+1] / SCALE, START_H + wobj[c+2] / SCALE),
                 radius=wobj[c+3] / SCALE,
             )
+        # circle (half red led)
+        if (wobj[c] == 5.0):
+            ccolor = (int(wobj[c+5]),int(wobj[c+6]),int(wobj[c+7]))
+            pygame.draw.circle(
+                surf,
+                color=ccolor,
+                center=(START_W + wobj[c+1] / SCALE, START_H + wobj[c+2] / SCALE),
+                radius=wobj[c+3] / SCALE,
+                draw_top_right=True,
+                draw_bottom_right=True,
+            )
+            # Draw orientation of the agent
+            pygame.draw.aaline(
+                surf,
+                start_pos=(START_W + wobj[c+1] / SCALE, START_H + wobj[c+2] / SCALE),
+                end_pos=(START_W + wobj[c+8] / SCALE, START_H + wobj[c+9] / SCALE),
+                color=(0, 0, 0),
+            )
+        # circle (half blue led)
+        if (wobj[c] == 6.0):
+            ccolor = (int(wobj[c+5]),int(wobj[c+6]),int(wobj[c+7]))
+            pygame.draw.circle(
+                surf,
+                color=ccolor,
+                center=(START_W + wobj[c+1] / SCALE, START_H + wobj[c+2] / SCALE),
+                radius=wobj[c+3] / SCALE,
+                draw_top_left=True,
+                draw_bottom_left=True,
+            )
+            # Draw orientation of the agent
+            pygame.draw.aaline(
+                surf,
+                start_pos=(START_W + wobj[c+1] / SCALE, START_H + wobj[c+2] / SCALE),
+                end_pos=(START_W + wobj[c+8] / SCALE, START_H + wobj[c+9] / SCALE),
+                color=(0, 0, 0),
+            )
         # polygon
         if (wobj[c] == 4.0):
             ccolor = (int(wobj[c+5]),int(wobj[c+6]),int(wobj[c+7]))

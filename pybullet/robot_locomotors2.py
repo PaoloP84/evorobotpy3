@@ -360,7 +360,7 @@ class HumanoidFlagrunHarder(HumanoidFlagrun):
 
     return flag_running_progress + self.potential_leak() * 100
     
-class HalfCheetahMulti(WalkerBase):
+class HalfCheetahSwarm(WalkerBase):
   foot_list = ["ffoot", "fshin", "fthigh", "bfoot", "bshin",
                "bthigh"]  # track these contacts with ground
 

@@ -45,7 +45,7 @@
  * randAct          the type of noise applied to motor neurons 0-nonoise 1=gaussian 2=gaussian-parametric (as in diagonal gaussian policy)
  * randActR         the range of uniform noise [used only when randact=1]
  * wrange           the range of weights initailization [used only when wInit=2]
- * nbins            if difefrent from 1, number of bins used to encode motors (see [1])
+ * nbins            if different from 1, number of bins used to encode motors (see [1])
  * low              minimum values for bins
  * high             maximum value for bins
  *

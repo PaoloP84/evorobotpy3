@@ -124,7 +124,7 @@ class customEnv(gym.Env):
         "render_fps": FPS,
     }
 
-    def __init__(self, render_mode: Optional[str] = None, nagents: Optional[int] = NUM_AGENTS):
+    def __init__(self, render_mode: Optional[str] = None, options: Optional[dict] = None):
         self.seed()
         self.viewer = None
 
@@ -137,7 +137,12 @@ class customEnv(gym.Env):
         self.agentDensity = AGENT_DENSITY
         self.drawlist = []
         # Number of agents
-        self.nagents = nagents
+        self.nagents = NUM_AGENTS
+        if options is not None:
+            try:
+                self.nagents = int(options['nrobots'])
+            except:
+                pass
 
         self.prev_shaping = None
 
@@ -275,8 +280,14 @@ class customEnv(gym.Env):
         p2x = ox + radius * math.cos(angle - math.pi / 2.0)
         p2y = oy + radius * math.sin(angle - math.pi / 2.0)
         # Compute angular coefficients of tangent rects
-        m1 = (p1y - my) / (p1x - mx)
-        m2 = (p2y - my) / (p2x - mx)
+        if p1x != mx:
+            m1 = (p1y - my) / (p1x - mx)
+        else:
+            m1 = 0.0
+        if p2x != mx:
+            m2 = (p2y - my) / (p2x - mx)
+        else:
+            m2 = 0.0
         # Get angle between the two tangent rects
         tan_ang = abs((m1 - m2) / (1 + m1 * m2))
         ang = math.atan(tan_ang)

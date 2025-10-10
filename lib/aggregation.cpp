@@ -566,9 +566,9 @@ void Problem::render()
 		    		dobjects[c+7] = 0.0; // ro->rgbcolor[2];
 		    		break;
 		    	case 4:
-		    		dobjects[c+5] = 255.0; //ro->rgbcolor[0];
-		    		dobjects[c+6] = 0.0; //ro->rgbcolor[1];
-		    		dobjects[c+7] = 255.0; // ro->rgbcolor[2];
+		    		dobjects[c+5] = -1.0; //ro->rgbcolor[0];
+		    		dobjects[c+6] = -1.0; //ro->rgbcolor[1];
+		    		dobjects[c+7] = -1.0; // ro->rgbcolor[2];
 		    		redLed = true;
 		    		blueLed = true;
 		    		break;
@@ -579,26 +579,30 @@ void Problem::render()
         	// LEDs (if active)
         	if (redLed)
         	{
-        		dobjects[c] = 3.0;
-        		dobjects[c+1] = (ro->x + xvect(ro->dir, ro->radius / 2.0)) * scale;
-        		dobjects[c+2] = (ro->y + yvect(ro->dir, ro->radius / 2.0)) * scale;
-			dobjects[c+3] = ro->radius / 5.0 * scale;
-			dobjects[c+4] = 0.0;
+        		dobjects[c] = 5.0;
+        		dobjects[c+1] = ro->x * scale;//(ro->x + xvect(ro->dir, ro->radius / 2.0)) * scale;
+        		dobjects[c+2] = ro->y * scale;//(ro->y + yvect(ro->dir, ro->radius / 2.0)) * scale;
+			dobjects[c+3] = ro->radius * scale;//ro->radius / 5.0 * scale;
+			dobjects[c+4] = ro->dir;
 			dobjects[c+5] = 255.0; //ro->rgbcolor[0];
 		    	dobjects[c+6] = 0.0; //ro->rgbcolor[1];
 		    	dobjects[c+7] = 0.0;
+		    	dobjects[c+8] = (ro->x + xvect(ro->dir, ro->radius)) * scale;
+		    	dobjects[c+9] = (ro->y + yvect(ro->dir, ro->radius)) * scale;
 		    	c += 10;
         	}
         	if (blueLed)
         	{
-        		dobjects[c] = 3.0;
-        		dobjects[c+1] = (ro->x - xvect(ro->dir, ro->radius / 2.0)) * scale;
-        		dobjects[c+2] = (ro->y - yvect(ro->dir, ro->radius / 2.0)) * scale;
-			dobjects[c+3] = ro->radius / 5.0 * scale;
-			dobjects[c+4] = 0.0;
+        		dobjects[c] = 6.0;
+        		dobjects[c+1] = ro->x * scale;//(ro->x - xvect(ro->dir, ro->radius / 2.0)) * scale;
+        		dobjects[c+2] = ro->y * scale;//(ro->y - yvect(ro->dir, ro->radius / 2.0)) * scale;
+			dobjects[c+3] = ro->radius * scale;//ro->radius / 5.0 * scale;
+			dobjects[c+4] = ro->dir;
 			dobjects[c+5] = 0.0; //ro->rgbcolor[0];
 		    	dobjects[c+6] = 0.0; //ro->rgbcolor[1];
 		    	dobjects[c+7] = 255.0;
+		    	dobjects[c+8] = (ro->x + xvect(ro->dir, ro->radius)) * scale;
+		    	dobjects[c+9] = (ro->y + yvect(ro->dir, ro->radius)) * scale;
 		    	c += 10;
         	}
     	}

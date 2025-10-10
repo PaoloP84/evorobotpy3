@@ -85,11 +85,29 @@ class DoublePoleEnv(gym.Env):
         "render_fps": 50,
     }
 
-    def __init__(self, render_mode: Optional[str] = None, markov: Optional[bool] = True, fixed: Optional[bool] = False, classic: Optional[bool] = False, long_poles: Optional[bool] = False):
-        self.markov = markov
-        self.fixed = fixed
-        self.classic = classic
-        self.long_poles = long_poles
+    def __init__(self, render_mode: Optional[str] = None, options: Optional[dict] = None):#markov: Optional[bool] = True, fixed: Optional[bool] = False, classic: Optional[bool] = False, long_poles: Optional[bool] = False):
+        self.markov = False
+        self.fixed = False
+        self.classic = False
+        self.long_poles = False
+        # Check values in options
+        if options is not None:
+            try:
+                self.markov = bool(options['markov'])
+            except:
+                pass
+            try:
+                self.fixed = bool(options['fixed'])
+            except:
+                pass
+            try:
+                self.classic = bool(options['classic'])
+            except:
+                pass
+            try:
+                self.long_poles = bool(options['long_poles'])
+            except:
+                pass
         self.gravity = 9.8
         self.masscart = 1.0
         self.masspole = 0.1
@@ -109,9 +127,6 @@ class DoublePoleEnv(gym.Env):
         # Angle at which to fail the episode
         self.theta_threshold_radians = 36 * 2 * math.pi / 360
         self.x_threshold = 2.4
-        
-        # Read from config file        
-        self.readConfig("config.ini")
 
         # Angle limit set to 2 * theta_threshold_radians so failing observation
         # is still within bounds.
@@ -153,42 +168,6 @@ class DoublePoleEnv(gym.Env):
         # Fixed states derived from Pagliuca, Milano and Nolfi (2018)
         self.fixedStates = [[-1.944, 0, 0, 0, 0, 0], [1.944, 0, 0, 0, 0, 0], [0, -1.215, 0, 0, 0, 0], [0, 1.215, 0, 0, 0, 0], [0, 0, -0.10472, 0, 0, 0], [0, 0, 0.10472, 0, 0, 0], [0, 0, 0, -0.135088, 0, 0], [0, 0, 0, 0.135088, 0, 0]]
         self.gstates = None
-        
-    def readConfig(self, filename):
-        config = configparser.ConfigParser()
-        config.read(filename)
-        options = config.options("DPOLE")
-        for o in options:
-            found = 0
-            if o == "markov":
-                self.markov = bool(config.getint("DPOLE","markov"))
-                found = 1
-            if o == "fixed":
-                self.fixed = bool(config.getint("DPOLE","fixed"))
-                found = 1
-            if (o == "classic"):
-                self.classic = bool(config.getint("DPOLE","classic"))
-                found = 1
-            if (o == "long_poles"):
-                self.long_poles = bool(config.getint("DPOLE","long_poles"))
-                found = 1
-            if (found == 0):
-                print("\033[1mOption %s in section [DPOLE] of %s file is unknown\033[0m" % (o, filename))
-                sys.exit()              
-        # Set variables
-        self.setTask(markov=self.markov, fixed=self.fixed, classic=self.classic, long_poles=self.long_poles)
-        
-    def setTask(self, markov=True, fixed=False, classic=False, long_poles=False):
-        self.markov = markov
-        self.fixed = fixed
-        self.classic = classic
-        self.long_poles = long_poles
-        # We need to recompute all the variables
-        if self.long_poles:
-            self.masspole2 = 0.05
-            self.length2 = 0.25
-            self.total_mass = self.masspole + self.masspole2 + self.masscart
-            self.polemass_length2 = self.masspole2 * self.length2
 
     def step(self, action):
         assert self.state is not None, "Call reset before using step method."
