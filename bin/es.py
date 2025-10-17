@@ -144,7 +144,7 @@ def main(argv):
 
     parseConfigFile(args.fileini)   # load hyperparameters from the ini file
 
-    availableAlgos = ('OpenAI-ES', 'SSS', 'CMA-ES', 'xNES', 'sNES', 'generational', 'generational_nmates', 'OpenAI-ES_nmates', 'CMA-ES_nmates', 'Hill-Climber', 'evostick', 'evostick_nmates', 'generalist', 'coevo2', 'coevo', 'archivestar1', 'coevoarch', 'coevosinglepop', 'archivestar1singlepop', 'coevoarchsinglepop')   # check whether the user specified a valid algorithm
+    availableAlgos = ('OpenAI-ES', 'SSS', 'CMA-ES', 'xNES', 'sNES', 'generational', 'Hill-Climber', 'evostick', 'generalist', 'coevo2', 'coevo', 'archivestar1', 'coevoarch', 'coevosinglepop', 'archivestar1singlepop', 'coevoarchsinglepop')   # check whether the user specified a valid algorithm
     if algoname not in availableAlgos:
         print("\033[1mAlgorithm %s is unknown\033[0m" % algoname)
         print("Please use one of the following algorithms:")
@@ -243,18 +243,10 @@ def main(argv):
         from snes import Algo
     elif (algoname == 'generational'):
         from generational import Algo
-    elif (algoname == 'generational_nmates'):
-        from generational_nmates import Algo
-    elif (algoname == 'OpenAI-ES_nmates'):
-        from openaies_nmates import Algo
-    elif (algoname == 'CMA-ES_nmates'):
-        from cmaes_nmates import Algo
     elif (algoname == 'Hill-Climber'):
         from hillclimber import Algo
     elif (algoname == 'evostick'):
         from evostick import Algo
-    elif (algoname == 'evostick_nmates'):
-        from evostick_nmates import Algo
     elif (algoname == 'coevo' or algoname == 'generalist'):
         from coevo import Algo
     elif (algoname == 'coevo2'):
