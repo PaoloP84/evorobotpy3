@@ -64,7 +64,7 @@ def parseConfigFile(filename):
         try:
             options = config.options("ENV")
             for o in options:
-                optdict[o] = config.getint("ENV",o)
+                optdict[o] = config.get("ENV",o)
         except:
             print("File %s does not contain section ENV" % filename)
             pass

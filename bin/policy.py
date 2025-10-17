@@ -47,7 +47,6 @@ class Policy(object):
         self.wrange = 1.0    # weight range, used in uniform initialization only
         self.low = -1.0      # mimimum activation
         self.high = 1.0      # maximum activation
-        self.morph_rate = None# rate of morphological variation
         # Read configuration file
         self.readConfig()
         # Overwrite heterogeneous if number of robots is 1
@@ -89,7 +88,7 @@ class Policy(object):
             for i in range(self.nmorphparams):
                 self.params[(self.nparams - self.nmorphparams + i)] = 0.0
             # Set the morphological variation rate
-            self.env.setParams(self.params[-self.nmorphparams:], rate=self.morph_rate)
+            self.env.setParams(self.params[-self.nmorphparams:])
         # Try to set the number of steps
         try:
             self.env.setNSteps(self.maxsteps)
@@ -112,14 +111,13 @@ class Policy(object):
         self.params = np.copy(x)
         self.nn.copyGenotype(self.params)   # copy a vector of parameters in the evonet parameter vector
         if self.nmorphparams > 0:
-            self.env.setParams(self.params[-self.nmorphparams:], rate=self.morph_rate) # set the morphology with the morphological parameters
+            self.env.setParams(self.params[-self.nmorphparams:]) # set the morphology with the morphological parameters
 
     def get_trainable_flat(self):
         return self.params                  # return the evonet vector of parameters
 
 
     def readConfig(self):                   # load hyperparameters from the [POLICY] section of the ini file
-        
         config = configparser.ConfigParser()
         config.read(self.fileini)
         options = config.options("POLICY")
@@ -182,9 +180,6 @@ class Policy(object):
           if (o == "wrange"):
               self.wrange = config.getfloat("POLICY","wrange")
               found = 1  
-          if (o == "morph_rate"):
-              self.morph_rate = config.getfloat("POLICY","morph_rate")
-              found = 1
           if (found == 0):
               print("\033[1mOption %s in section [POLICY] of %s file is unknown\033[0m" % (o, self.fileini))
               sys.exit()

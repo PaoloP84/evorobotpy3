@@ -9,15 +9,40 @@ import pygame
 import gymnasium as gym
 from gymnasium import spaces
 from gymnasium.utils import seeding
+import sys
+from typing import Optional, Tuple, Union
+
+GRID_SIZE = 5
 
 class GridWorldEnv(gym.Env):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 5}
 
-    def __init__(self, render_mode=None, size=5):
-        self.size = size
+    def __init__(self, render_mode=None, options: Optional[dict] = None):
         self.window_size = 512 # Pygame window size
         
-        # Observations are encoded in a list with the agent's and the target's location.
+        self.size = GRID_SIZE
+        self.nobs = 0
+        # Check values in options
+        if options is not None:
+            try:
+                self.size = int(options['size'])
+            except:
+                pass
+            try:
+                self.nobs = int(options['nobs'])
+            except:
+                pass
+        
+        # Observations are dictionaries with the agent's and the target's location.
+        # Each location is encoded as an element of {0, ..., `size`}^2, i.e. MultiDiscrete([size, size]).
+        """
+        self.observation_space = spaces.Dict(
+            {
+                "agent": spaces.Box(0, size - 1, shape=(2,), dtype=int),
+                "target": spaces.Box(0, size - 1, shape=(2,), dtype=int),
+            }
+        )
+        """
         high = np.array([np.inf] * 4, dtype=np.float32)
         self.observation_space = spaces.Box(-high, high, dtype=np.float32)
 
@@ -54,7 +79,17 @@ class GridWorldEnv(gym.Env):
         return [seed]
 
     def _get_obs(self):
-        return np.concatenate((self._agent_location, self._target_location))
+        proxy = 0.0
+        if self._detect():
+            proxy = 1.0
+        oblist = []
+        for elem in self._agent_location:
+            oblist.append(2.0 * (elem / (self.size - 1)) - 1.0)
+        for elem in self._target_location:
+            oblist.append(2.0 * (elem / (self.size - 1)) - 1.0)
+        obs = np.array(oblist, dtype=np.float32)
+        obs = np.append(obs, proxy)
+        return obs
 
     def _get_info(self):
         return {
@@ -63,10 +98,43 @@ class GridWorldEnv(gym.Env):
             )
         }
         
+    def _detect(self):
+        found = False
+        i = 0
+        while i < self.nobs and not found:
+            ob_location = self.obstacles[i]
+            dist = np.linalg.norm(
+                self._agent_location - ob_location, ord=1
+            )
+            if dist <= 2:
+                found = True
+            i += 1
+        return found
+        
     def _is_out(self):
         if self._agent_location[0] < 0 or self._agent_location[0] >= self.size or self._agent_location[1] < 0 or self._agent_location[1] >= self.size:
             return True
         return False
+        
+    def _collision(self):
+        found = False
+        i = 0
+        while i < self.nobs and not found:
+            ob_location = self.obstacles[i]
+            found = np.array_equal(ob_location, self._agent_location)
+            i += 1
+        return found
+        
+    def _overlap(self, idx, location):
+        found = False
+        i = 0
+        while i < idx and not found:
+            if i != idx:
+                ob_location = self.obstacles[i]
+                if np.array_equal(ob_location, location):
+                    found = True
+            i += 1
+        return found
 
     def reset(self, seed=None):
         # Choose the agent's location uniformly at random
@@ -78,6 +146,14 @@ class GridWorldEnv(gym.Env):
             self._target_location = self.np_random.integers(
                 0, self.size, size=2, dtype=int
             )
+            
+        # Obstacles
+        self.obstacles = []
+        for i in range(self.nobs):
+            ob_location = self._agent_location
+            while np.array_equal(ob_location, self._agent_location) or np.array_equal(ob_location, self._target_location) or self._overlap(i, ob_location):
+                ob_location = self.np_random.integers(0, self.size, size=2, dtype=int)
+            self.obstacles.append(ob_location)
 
         observation = self._get_obs()
         info = self._get_info()
@@ -92,13 +168,21 @@ class GridWorldEnv(gym.Env):
         direction = self._action_to_direction[action]
         # Update agent location
         self._agent_location += direction
-        # Premature end if agent's new location is out of the grid world
+        reward = 0.0
+        bonus = 0.0
+        penalty = 0.0
+        # Premature end if agent either goes out of the grid or collides with an obstacle (if any)
+        terminated = False
         truncated = False
-        if self._is_out():
+        if self._is_out() or self._collision():
             truncated = True
-        # An episode is done iff the agent has reached the target
-        terminated = np.array_equal(self._agent_location, self._target_location)
-        reward = 1 if terminated else 0  # Binary sparse rewards
+            penalty = 1.0
+        else:
+            # An episode is done if the agent has reached the target
+            terminated = np.array_equal(self._agent_location, self._target_location)
+            if terminated:
+                bonus = 1.0
+        reward = bonus - penalty
         observation = self._get_obs()
         info = self._get_info()
 
@@ -136,6 +220,17 @@ class GridWorldEnv(gym.Env):
                 (pix_square_size, pix_square_size),
             ),
         )
+        # Then we draw the obstacles (if any)
+        for i in range(self.nobs):
+            ob_location = self.obstacles[i]
+            pygame.draw.rect(
+                canvas,
+                (0, 255, 0),
+                pygame.Rect(
+                    pix_square_size * ob_location,
+                    (pix_square_size, pix_square_size),
+                ),
+            )
         # Now we draw the agent
         pygame.draw.circle(
             canvas,

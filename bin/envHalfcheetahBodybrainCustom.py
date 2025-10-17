@@ -133,9 +133,13 @@ class customEnv(gym.Env):
 
         self.prev_shaping = None
 
+        self.rate = MOD_RATE
         self.hardcore = False
         if options is not None:
-            print(options)
+            try:
+                self.rate = float(options['morph_rate'])
+            except:
+                pass
             try:
                 self.hardcore = bool(options['hardcore'])
             except:
@@ -355,13 +359,8 @@ class customEnv(gym.Env):
     def getNumParams(self):
         return self.nparams
 
-    def setParams(self, params, rate=None):
+    def setParams(self, params):
         self.params = params
-        # And the rate
-        if rate is None:
-            self.rate = MOD_RATE
-        else:
-            self.rate = rate
 
     def setTest(self):
         # Set test flag
