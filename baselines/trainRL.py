@@ -1,7 +1,7 @@
 import gymnasium as gym
 import pybullet
 import pybullet_envs
-from stable_baselines3 import PPO
+from stable_baselines3 import A2C, DDPG, DQN, PPO, SAC, TD3
 import numpy as np
 import argparse
 import sys
@@ -13,6 +13,8 @@ NSTEPS = 5e7
 
 def readConfig(filename):
     environment = None
+    algo = 'PPO'
+    policy = 'MlpPolicy'
     maxsteps = NSTEPS
     seed = 1
     folder = os.getcwd()
@@ -24,6 +26,12 @@ def readConfig(filename):
         found = 0
         if o == "environment":
             environment = config.get("EXP","environment")
+            found = 1
+        if o == "algorithm":
+            algo = config.get("EXP","algorithm")
+            found = 1
+        if o == "policy":
+            policy = config.get("EXP","policy")
             found = 1
         if o == "maxmsteps":
             maxsteps = 1e6 * config.getint("EXP","maxmsteps")
@@ -37,11 +45,11 @@ def readConfig(filename):
         if found == 0:
             print("\033[1mOption %s in section [EXP] of %s file is unknown\033[0m" % (o, filename))
             sys.exit()
-    return environment, maxsteps, seed, folder
+    return environment, algo, policy, maxsteps, seed, folder
 
 def trainModel(filename):
     # Read configuration file
-    environment, maxsteps, seed, folder = readConfig(filename)
+    environment, algo, policy, maxsteps, seed, folder = readConfig(filename)
     if environment is None:
         print("Configuration file %s does not contain an environment name, which is mandatory!!!" % filename)
         sys.exit()
@@ -52,12 +60,23 @@ def trainModel(filename):
     env = gym.make(environment)
     # Reset the environment
     env.reset(seed=seed)
-    # Create the model: we used the PPO algorithm with an MLP policy
-    model = PPO("MlpPolicy", env, verbose=1)
+    # Create the model: we used a RL algorithm with an MLP policy
+    if algo == 'A2C':
+        model = A2C(policy, env, verbose=1)
+    elif algo == 'DDPG':
+        model = DDPG(policy, env, verbose=1)
+    elif algo == 'DQN':
+        model = DQN(policy, env, verbose=1)
+    elif algo == 'PPO':
+        model = PPO(policy, env, verbose=1)
+    elif algo == 'SAC':
+        model = SAC(policy, env, verbose=1)
+    elif algo == 'TD3':
+        model = TD3(policy, env, verbose=1)
     # Training of the model
     model.learn(total_timesteps=maxsteps)
     # Save the model
-    outfile = environment + "_PPO_modelS" + str(seed) + ".zip"
+    outfile = environment + "_" + algo + "_" + policy + "_modelS" + str(seed) + ".zip"
     model.save(os.path.join(folder, outfile))
     env.close()
 
