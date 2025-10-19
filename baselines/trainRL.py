@@ -6,18 +6,15 @@ import numpy as np
 import argparse
 import sys
 import os
-import configparser
-
-# Total number of steps (default)
-NSTEPS = 5e7
 
 def readConfig(filename):
     environment = None
     algo = 'PPO'
     policy = 'MlpPolicy'
-    maxsteps = NSTEPS
+    maxsteps = 5e7
     seed = 1
     folder = os.getcwd()
+    optdict = dict()
     # Read data from configuration file
     config = configparser.ConfigParser()
     config.read(filename)
@@ -45,11 +42,19 @@ def readConfig(filename):
         if found == 0:
             print("\033[1mOption %s in section [EXP] of %s file is unknown\033[0m" % (o, filename))
             sys.exit()
-    return environment, algo, policy, maxsteps, seed, folder
+    # Now look for the [ENV] section (if any)
+    try:
+        options = config.options("ENV")
+        for o in options:
+            optdict[o] = config.get("ENV",o)
+    except:
+        print("File %s does not contain section ENV" % filename)
+        pass
+    return environment, algo, policy, maxsteps, seed, folder, optdict
 
 def trainModel(filename):
     # Read configuration file
-    environment, algo, policy, maxsteps, seed, folder = readConfig(filename)
+    environment, algo, policy, maxsteps, seed, folder, options = readConfig(filename)
     if environment is None:
         print("Configuration file %s does not contain an environment name, which is mandatory!!!" % filename)
         sys.exit()
@@ -81,7 +86,7 @@ def trainModel(filename):
     env.close()
 
 def main(argv):
-    parser = argparse.ArgumentParser(description='Train PPO')
+    parser = argparse.ArgumentParser(description='Train RL')
     parser.add_argument('-f', '--filename', help='configuration file', type=str, default='config.ini')
 
     args = parser.parse_args()
