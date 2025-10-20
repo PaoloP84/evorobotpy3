@@ -63,7 +63,11 @@ def trainModel(filename):
     if not os.path.exists(folder):
         os.makedirs(folder)
     # Create the environment
-    env = gym.make(environment)
+    try:
+        env = gym.make(environment, options=options)
+    except:
+        print("Environment %s does not accept options as parameter..." % environment)
+        env = gym.make(environment)
     # Reset the environment
     env.reset(seed=seed)
     # Create the model: we used a RL algorithm with an MLP policy
