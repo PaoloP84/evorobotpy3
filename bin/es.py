@@ -198,12 +198,20 @@ def main(argv):
         add_env = False
         no_net_env = False
         try:
-            env = gym.make(environment, render_mode=render_mode, options=optdict)
+            try:
+                env = gym.make(environment, render_mode=render_mode, options=optdict)
+            except:
+                print(f"Environment {environment} might not accept <options> dict as parameter")
+                env = gym.make(environment, render_mode=render_mode)
         except:
             print(f"Environment {environment} is not registered in gymnasium... Look for it in evorobotpy_envs!")
             try:
                 envname = os.path.join("evorobotpy_envs", environment)
-                env = gym.make(envname, render_mode=render_mode, options=optdict)
+                try:
+                    env = gym.make(envname, render_mode=render_mode, options=optdict)
+                except:
+                    print(f"Environment {envname} might not accept <options> dict as parameter")
+                    env = gym.make(envname, render_mode=render_mode)
                 add_env = True
                 no_net_env = False
                 try:
