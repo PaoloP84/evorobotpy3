@@ -144,7 +144,7 @@ def main(argv):
 
     parseConfigFile(args.fileini)   # load hyperparameters from the ini file
 
-    availableAlgos = ('OpenAI-ES', 'SSS', 'CMA-ES', 'xNES', 'sNES', 'generational', 'Hill-Climber', 'evostick', 'generalist', 'coevo2', 'coevo', 'archivestar1', 'coevoarch', 'coevosinglepop', 'archivestar1singlepop', 'coevoarchsinglepop')   # check whether the user specified a valid algorithm
+    availableAlgos = ('OpenAI-ES', 'SSS', 'CMA-ES', 'xNES', 'sNES', 'GA', 'generational', 'Hill-Climber', 'evostick', 'generalist', 'coevo2', 'coevo', 'archivestar1', 'coevoarch', 'coevosinglepop', 'archivestar1singlepop', 'coevoarchsinglepop')   # check whether the user specified a valid algorithm
     if algoname not in availableAlgos:
         print("\033[1mAlgorithm %s is unknown\033[0m" % algoname)
         print("Please use one of the following algorithms:")
@@ -249,6 +249,8 @@ def main(argv):
         from xnes import Algo
     elif (algoname == 'sNES'):
         from snes import Algo
+    elif (algoname == 'GA'):
+        from ga import Algo
     elif (algoname == 'generational'):
         from generational import Algo
     elif (algoname == 'Hill-Climber'):
