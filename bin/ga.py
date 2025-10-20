@@ -33,9 +33,6 @@ class Algo(EvoAlgo):
             self.maxsteps = 1000000
             self.popSize = 100
             self.mutation = 0.02
-            self.crossover = False
-            self.crossrate = 0.0
-            self.crosstype = 0
             self.elitism = False
             self.tournamentSize = 2
             self.saveEveryN = 1
@@ -51,16 +48,6 @@ class Algo(EvoAlgo):
                     found = 1
                 if o == "mutation":
                     self.mutation = config.getfloat("ALGO","mutation")
-                    found = 1
-                if o == "crossover":
-                    cross = config.getint("ALGO","crossover")
-                    self.crossover = bool(cross)
-                    found = 1
-                if o == "crossrate":
-                    self.crossrate = config.getfloat("ALGO","crossrate")
-                    found = 1
-                if o == "crosstype":
-                    self.crosstype = config.getint("ALGO","crosstype")
                     found = 1
                 if o == "elitism":
                     elitism = config.getint("ALGO","elitism")
