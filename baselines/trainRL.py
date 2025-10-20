@@ -6,6 +6,7 @@ import numpy as np
 import argparse
 import sys
 import os
+import configparser
 
 def readConfig(filename):
     environment = None
