@@ -144,7 +144,7 @@ def main(argv):
 
     parseConfigFile(args.fileini)   # load hyperparameters from the ini file
 
-    availableAlgos = ('OpenAI-ES', 'SSS', 'CMA-ES', 'xNES', 'sNES', 'GA', 'generational', 'Hill-Climber', 'evostick', 'generalist', 'coevo2', 'coevo', 'archivestar1', 'coevoarch', 'coevosinglepop', 'archivestar1singlepop', 'coevoarchsinglepop')   # check whether the user specified a valid algorithm
+    availableAlgos = ('OpenAI-ES', 'SSS', 'CMA-ES', 'xNES', 'sNES', 'GA', 'generational', 'hillclimber', 'evostick', 'generalist', 'coevo2', 'coevo', 'archivestar1', 'coevoarch', 'coevosinglepop', 'archivestar1singlepop', 'coevoarchsinglepop')   # check whether the user specified a valid algorithm
     if algoname not in availableAlgos:
         print("\033[1mAlgorithm %s is unknown\033[0m" % algoname)
         print("Please use one of the following algorithms:")
@@ -184,12 +184,20 @@ def main(argv):
         from gymnasium import spaces
         import pybullet
         import pybullet_envs
-        env = gym.make(environment, render_mode=render_mode, options=optdict)
+        try:
+            env = gym.make(environment, render_mode=render_mode, options=optdict)
+        except:
+            print(f"Environment {environment} might not accept <options> dict as parameter")
+            env = gym.make(environment, render_mode=render_mode)
         from policy import BulletPolicy
         policy = BulletPolicy(env, args.fileini, args.seed, test)
     elif "Custom" in environment:              # Custom environment
         customEnv = __import__(environment)
-        env = customEnv.customEnv(render_mode=render_mode, options=optdict)   
+        try:
+            env = customEnv.customEnv(render_mode=render_mode, options=optdict)
+        except:
+            print(f"Environment {environment} might not accept <options> dict as parameter")
+            env = customEnv.customEnv(render_mode=render_mode)
         from policy import GymPolicy
         policy = GymPolicy(env, args.fileini, args.seed, test)      
     else:                                       # OpenAi Gym environment
@@ -253,7 +261,7 @@ def main(argv):
         from ga import Algo
     elif (algoname == 'generational'):
         from generational import Algo
-    elif (algoname == 'Hill-Climber'):
+    elif (algoname == 'hillclimber'):
         from hillclimber import Algo
     elif (algoname == 'evostick'):
         from evostick import Algo

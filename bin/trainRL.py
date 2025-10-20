@@ -7,6 +7,8 @@ import argparse
 import sys
 import os
 import configparser
+import evorobotpy_envs
+from evorobotpy_envs import *
 
 def readConfig(filename):
     environment = None
@@ -63,11 +65,44 @@ def trainModel(filename):
     if not os.path.exists(folder):
         os.makedirs(folder)
     # Create the environment
-    try:
-        env = gym.make(environment, options=options)
-    except:
-        print("Environment %s does not accept options as parameter..." % environment)
-        env = gym.make(environment)
+    env = None
+    if "Er" in environment:                   # Er environment (implemented in C++ and wrapped with Cython)
+        ErProblem = __import__(environment)
+        env = ErProblem.PyErProblem()   
+    elif "Bullet" in environment:             # Pybullet environment 
+        try:
+            env = gym.make(environment, options=optdict)
+        except:
+            print(f"Environment {environment} does not accept options as parameter...")
+            env = gym.make(environment)
+    elif "Custom" in environment:              # Custom environment
+        customEnv = __import__(environment)
+        try:
+            env = customEnv.customEnv(options=optdict)
+        except:
+            print(f"Environment {environment} does not accept options as parameter...")
+            env = customEnv.customEnv()     
+    else:                         
+        try:
+            try:
+                env = gym.make(environment, options=options)
+            except:
+                print(f"Environment {environment} does not accept options as parameter...")
+                env = gym.make(environment)
+        except:
+            print(f"Environment {environment} is not registered in gymnasium... Look for it in evorobotpy_envs!")
+            try:
+                envname = os.path.join("evorobotpy_envs", environment)
+                try:
+                    env = gym.make(envname, options=optdict)
+                except:
+                    print(f"Environment {envname} might not accept <options> dict as parameter")
+                    env = gym.make(envname)
+            except:
+                print(f"Environment {environment} (passed to gym.make() with argument {envname}) not found!!!")
+    if env is None:
+        print("Failure in environment creation!!!")
+        sys.exit()
     # Reset the environment
     env.reset(seed=seed)
     # Create the model: we used a RL algorithm with an MLP policy

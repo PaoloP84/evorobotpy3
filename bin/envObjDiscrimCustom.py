@@ -463,15 +463,7 @@ class customEnv(gym.Env):
                     angle -= math.pi / 2.0
                 else:
                     # Agent arrived at wall frontally -> invert its direction
-                    angle = += math.pi#-angle
-                """
-                # Random rotation (either left or right) of 90°
-                coin = self.np_random.uniform(0.0, 1.0)
-                if coin >= 0.5:
-                    angle += math.pi / 2.0
-                else:
-                    angle -= math.pi / 2.0
-                """
+                    angle += math.pi
                 angle = setAngleInRange(angle)
             # Collision with other peers
             for j in range(self.nagents):

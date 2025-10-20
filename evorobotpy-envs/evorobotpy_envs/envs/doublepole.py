@@ -130,18 +130,19 @@ class DoublePoleEnv(gym.Env):
 
         # Angle limit set to 2 * theta_threshold_radians so failing observation
         # is still within bounds.
-        high = np.array(
-            [
-                self.x_threshold * 2,
-                np.finfo(np.float32).max,
-                self.theta_threshold_radians * 2,
-                np.finfo(np.float32).max,
-                self.theta_threshold_radians * 2,
-                np.finfo(np.float32).max,
-            ],
-            dtype=np.float32,
-        )
-        if not self.markov:
+        if self.markov:
+            high = np.array(
+                [
+                    self.x_threshold * 2,
+                    np.finfo(np.float32).max,
+                    self.theta_threshold_radians * 2,
+                    np.finfo(np.float32).max,
+                    self.theta_threshold_radians * 2,
+                    np.finfo(np.float32).max,
+                ],
+                dtype=np.float32,
+            )
+        else:
             high = np.array(
                 [
                     self.x_threshold * 2,
@@ -256,7 +257,7 @@ class DoublePoleEnv(gym.Env):
         else:
             x, x_dot, theta, theta_dot, theta2, theta_dot2 = self.state
             ob = np.array([x, theta, theta2], dtype=np.float32)
-        return np.array(self.state, dtype=np.float32), {}
+        return ob, {}
 
     def render(self):
         if self.render_mode is None:
