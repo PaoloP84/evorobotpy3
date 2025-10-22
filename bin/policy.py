@@ -409,16 +409,45 @@ class ErPolicy(Policy):
 # create a new observation vector each step, consequently we need to pass the pointer to evonet each step 
 # Use renderWorld to show the activation of neurons
 class PolicyNoNet(Policy):
+    class FakeNetObj(object):
+        def __init__(self):
+            self.cseed = 721 # Fake seed
+            
+        def seed(self, cseed):
+            self.cseed = cseed
+            
+        def initWeights(self):
+            return
+                        
+        def normphase(self, idx):
+            return
+
     def __init__(self, env, filename, seed, test):
+        self.env = env
         self.ninputs = env.observation_space.shape[0]      # only works for problems with continuous observation space
         self.noutputs = env.action_space.shape[0]          # only works for problems with continuous action space
-        Policy.__init__(self, env, filename, seed, test)
+        self.fileini = filename
+        self.seed = seed
+        self.test = test
+        self.nn = self.FakeNetObj()
+        self.readConfig()
+        if (self.normalize == 1):                                      # allocate normalization vector
+            self.normvector = np.arange(self.ninputs*2, dtype=np.float64)
+        else:
+            self.normvector = None
+        #Policy.__init__(self, env, filename, seed, test)
         
     def get_trainable_flat(self):
-        params = np.zeros(self.ninputs)
+        self.params = np.zeros(self.ninputs)
         for i in range(self.ninputs):
-            params[i] = np.random.uniform(-self.wrange, self.wrange)
-        return params
+            self.params[i] = np.random.uniform(-self.wrange, self.wrange)
+        return self.params
+        
+    def set_trainable_flat(self, x):        
+        self.params = np.copy(x)
+        
+    def reset(self):
+        return
 
     def rollout(self, ntrials, render=False, seed=None):   # evaluate the policy for one or more episodes 
         rews = 0.0                    # summed rewards
