@@ -237,7 +237,21 @@ def main(argv):
                     pass
             except:
                 print(f"Environment {environment} (passed to gym.make() with argument {envname}) not found!!!")
-                sys.exit()
+                try:
+                    import evogym.envs
+                    from evogym import sample_robot
+                    # Robot size
+                    robot_size = 5 # Taken from evogym examples!
+                    try:
+                        robot_size = options['size']
+                    except:
+                        pass
+                    # Create a random body based on the passed size
+                    body, connections = sample_robot((robot_size, robot_size))
+                    env = gym.make(environment, body=body, connections=connections, render_mode=render_mode)
+                except:
+                    print(f"Environment {environment} not found!!!")
+                    sys.exit()
         if no_net_env:
             from policy import PolicyNoNet
             policy = PolicyNoNet(env, args.fileini, args.seed, test)
