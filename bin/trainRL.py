@@ -43,7 +43,7 @@ def readConfig(filename):
             folder = config.get("EXP","folder")
             found = 1
         if found == 0:
-            print("\033[1mOption %s in section [EXP] of %s file is unknown\033[0m" % (o, filename))
+            print(f"\033[1mOption {o} in section [EXP] of {filename} file is unknown\033[0m")
             sys.exit()
     # Now look for the [ENV] section (if any)
     try:
@@ -51,7 +51,7 @@ def readConfig(filename):
         for o in options:
             optdict[o] = config.get("ENV",o)
     except:
-        print("File %s does not contain section ENV" % filename)
+        print(f"File {filename} does not contain section ENV")
         pass
     return environment, algo, policy, maxsteps, seed, folder, optdict
 
@@ -68,33 +68,33 @@ def trainModel(filename):
     env = None
     if "Er" in environment:                   # Er environment (implemented in C++ and wrapped with Cython)
         ErProblem = __import__(environment)
-        env = ErProblem.PyErProblem()   
+        env = ErProblem.PyErProblem()  
     elif "Bullet" in environment:             # Pybullet environment 
         try:
             env = gym.make(environment, options=optdict)
         except:
-            print(f"Environment {environment} does not accept options as parameter...")
+            print(f"Environment {environment} might not accept options as parameter...")
             env = gym.make(environment)
     elif "Custom" in environment:              # Custom environment
         customEnv = __import__(environment)
         try:
             env = customEnv.customEnv(options=optdict)
         except:
-            print(f"Environment {environment} does not accept options as parameter...")
+            print(f"Environment {environment} might not accept options as parameter...")
             env = customEnv.customEnv()     
     else:                         
         try:
             try:
                 env = gym.make(environment, options=options)
             except:
-                print(f"Environment {environment} does not accept options as parameter...")
+                print(f"Environment {environment} might not accept options as parameter...")
                 env = gym.make(environment)
         except:
             print(f"Environment {environment} is not registered in gymnasium... Look for it in evorobotpy_envs!")
             try:
                 envname = os.path.join("evorobotpy_envs", environment)
                 try:
-                    env = gym.make(envname, options=optdict)
+                    env = gym.make(envname, options=options)
                 except:
                     print(f"Environment {envname} might not accept <options> dict as parameter")
                     env = gym.make(envname)
@@ -118,6 +118,10 @@ def trainModel(filename):
         model = SAC(policy, env, verbose=1)
     elif algo == 'TD3':
         model = TD3(policy, env, verbose=1)
+    else:
+        # Model does not exist or it is not callable -> use PPO as default algorithm
+        print(f"Warning! Algorithm {algo} does not exist or it is not callable. PPO will be used as default algorithm.")
+        model = PPO(policy, env, verbose=1)
     # Training of the model
     model.learn(total_timesteps=maxsteps)
     # Save the model

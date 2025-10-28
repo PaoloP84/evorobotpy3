@@ -93,19 +93,23 @@ class DoublePoleEnv(gym.Env):
         # Check values in options
         if options is not None:
             try:
-                self.markov = bool(options['markov'])
+                opt = int(options['markov'])
+                self.markov = bool(opt)
             except:
                 pass
             try:
-                self.fixed = bool(options['fixed'])
+                opt = int(options['fixed'])
+                self.fixed = bool(opt)
             except:
                 pass
             try:
-                self.classic = bool(options['classic'])
+                opt = int(options['classic'])
+                self.classic = bool(opt)
             except:
                 pass
             try:
-                self.long_poles = bool(options['long_poles'])
+                opt = int(options['long_poles'])
+                self.long_poles = bool(opt)
             except:
                 pass
         self.gravity = 9.8
@@ -172,6 +176,8 @@ class DoublePoleEnv(gym.Env):
 
     def step(self, action):
         assert self.state is not None, "Call reset before using step method."
+        assert len(action) == 1, f"Invalid action length {len(action)}"
+        action = action[0]
         x, x_dot, theta, theta_dot, theta2, theta_dot2 = self.state
         force = self.force_mag if action >= 0.0 else -self.force_mag
         costheta = math.cos(theta)

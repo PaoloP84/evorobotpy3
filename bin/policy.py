@@ -429,6 +429,7 @@ class PolicyNoNet(Policy):
         self.fileini = filename
         self.seed = seed
         self.test = test
+        self.nparams = self.ninputs
         self.nn = self.FakeNetObj()
         self.readConfig()
         if (self.normalize == 1):                                      # allocate normalization vector
@@ -439,6 +440,7 @@ class PolicyNoNet(Policy):
         
     def get_trainable_flat(self):
         self.params = np.zeros(self.ninputs)
+        self.nparams = self.ninputs
         for i in range(self.ninputs):
             self.params[i] = np.random.uniform(-self.wrange, self.wrange)
         return self.params
@@ -463,12 +465,12 @@ class PolicyNoNet(Policy):
             rew = 0.0
             t = 0
             while t < self.maxsteps:
-                self.ob, r, terminated, truncated, _ = self.env.step(ac)  # perform a simulation step (observation and action match)
+                self.ob, r, terminated, truncated, _ = self.env.step(ac)  # perform a simulation step
                 rew += r
                 t += 1
                 if self.test > 0 and render:
                     self.env.render()
-                    #time.sleep(0.5)
+                    time.sleep(0.05)
                 if terminated or truncated:
                     break
             if (self.test > 0):

@@ -198,8 +198,17 @@ def main(argv):
         except:
             print(f"Environment {environment} might not accept <options> dict as parameter")
             env = customEnv.customEnv(render_mode=render_mode)
-        from policy import GymPolicy
-        policy = GymPolicy(env, args.fileini, args.seed, test)      
+        no_net_env = False
+        try:
+            no_net_env = env.noNetEnv()
+        except:
+            pass
+        if no_net_env:
+            from policy import PolicyNoNet
+            policy = PolicyNoNet(env, args.fileini, args.seed, test)
+        else:
+            from policy import GymPolicy
+            policy = GymPolicy(env, args.fileini, args.seed, test)    
     else:                                       # OpenAi Gym environment
         import gymnasium as gym
         from gymnasium import spaces
