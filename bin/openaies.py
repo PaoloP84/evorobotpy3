@@ -53,10 +53,10 @@ class Algo(EvoAlgo):
                     self.stepsize = config.getfloat("ALGO","stepsize")
                     found = 1
                 if o == "noisestddev":
-                    self.noiseStdDev = config.getfloat("ALGO","noiseStdDev")
+                    self.noiseStdDev = config.getfloat("ALGO","noisestddev")
                     found = 1
                 if o == "samplesize":
-                    self.batchSize = config.getint("ALGO","sampleSize")
+                    self.batchSize = config.getint("ALGO","samplesize")
                     found = 1
                 if o == "wdecay":
                     self.wdecay = config.getint("ALGO","wdecay")

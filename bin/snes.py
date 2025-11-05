@@ -35,7 +35,7 @@ class Algo(EvoAlgo):
             config = configparser.ConfigParser()
             config.read(self.fileini)
             self.maxsteps = 1000000
-            self.batchSize = 20
+            self.batchSize = 0
             self.saveeach = 60
             options = config.options("ALGO")
             for o in options:
@@ -44,7 +44,7 @@ class Algo(EvoAlgo):
                     self.maxsteps = config.getint("ALGO","maxmsteps") * 1000000
                     found = 1
                 if o == "batchsize":
-                    self.batchSize = config.getint("ALGO","batchSize")
+                    self.batchSize = config.getint("ALGO","batchsize")
                     found = 1
                 if o == "saveeach":
                     self.saveeach = config.getint("ALGO","saveeach")

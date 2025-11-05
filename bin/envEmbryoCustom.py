@@ -137,7 +137,8 @@ class customEnv(gym.Env):
             except:
                 pass
             try:
-                self.hardcore = bool(options['hardcore'])
+                opt = int(options['hardcore'])
+                self.hardcore = bool(opt)
             except:
                 pass
                 
@@ -168,9 +169,6 @@ class customEnv(gym.Env):
         self.params = np.zeros(self.nparams, dtype=np.float64)
         self.factors = np.ones(self.nparams, dtype=np.float64) # 2 for each segment (width and height) + 2 for each joint (asymmetric angular ranges) + torso angle + segment angle
         self.rate = 0.0
-
-        # Test flag
-        self.test = False
 
         # Number of observations
         self.ob_len = 5 + (self.njoints * 2) + self.numSegs # 5 for torso, njoints * 2 for each joint, contact flag for each segment
@@ -357,10 +355,6 @@ class customEnv(gym.Env):
 
     def setParams(self, params):
         self.params = params
-
-    def setTest(self):
-        # Set test flag
-        self.test = True
 
     def lowestHeight(self):
         lowest = self.torso.position[1]

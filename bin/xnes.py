@@ -35,7 +35,7 @@ class Algo(EvoAlgo):
             config = configparser.ConfigParser()
             config.read(self.fileini)
             self.maxsteps = 1000000
-            self.batchSize = 20
+            self.batchSize = 0
             self.saveeach = 60
             options = config.options("ALGO")
             for o in options:
@@ -44,7 +44,7 @@ class Algo(EvoAlgo):
                     self.maxsteps = config.getint("ALGO","maxmsteps") * 1000000
                     found = 1
                 if o == "batchsize":
-                    self.batchSize = config.getint("ALGO","batchSize")
+                    self.batchSize = config.getint("ALGO","batchsize")
                     found = 1
                 if o == "saveeach":
                     self.saveeach = config.getint("ALGO","saveeach")
@@ -68,7 +68,7 @@ class Algo(EvoAlgo):
         # setting parameters
         if self.batchSize == 0:
             # Use default value: 4 + floor(3 * log(N)), where N is the number of parameters
-            self.batchSize = int(4 + floor(3 * log(nparams))) # population size, offspring
+            self.batchSize = int(4 + floor(3 * log(self.nparams))) # population size, offspring
         self.mu = int(floor(self.batchSize / 2))                       # number of parents/points for recombination
         self.weights = log(self.mu + 1) - log(array(range(1, self.mu + 1)))	  # use array
         self.weights /= sum(self.weights)
