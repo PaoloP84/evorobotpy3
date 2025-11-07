@@ -92,10 +92,8 @@ class Policy(object):
         # Try to set the number of steps
         try:
             self.env.setNSteps(self.maxsteps)
-        except:
-            pass
-        except:
-            pass
+        except Exception as e:
+            print(e)
          
     def reset(self):
         self.nn.seed(self.seed)             # set the seed of evonet
@@ -425,12 +423,18 @@ class PolicyNoNet(Policy):
     def __init__(self, env, filename, seed, test):
         self.env = env
         self.ninputs = env.observation_space.shape[0]      # only works for problems with continuous observation space
-        self.noutputs = env.action_space.shape[0]          # only works for problems with continuous action space
+        try:
+            self.noutputs = env.action_space.shape[0]          # only works for problems with continuous action space
+        except Exception as e:
+            print(e)
+            # Maybe the action space is discrete
+            self.noutputs = env.action_space.n                  # only works for problems with discrete action space
         self.fileini = filename
         self.seed = seed
         self.test = test
         self.nparams = self.ninputs
         self.nn = self.FakeNetObj()
+        self.normalize = 0
         self.readConfig()
         if (self.normalize == 1):                                      # allocate normalization vector
             self.normvector = np.arange(self.ninputs*2, dtype=np.float64)
