@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-   This file belong to https://github.com/snolfi/evorobotpy
+   This file belongs to https://github.com/PaoloP84/evorobotpy3
    and has been written by Stefano Nolfi and Paolo Pagliuca, stefano.nolfi@istc.cnr.it, paolo.pagliuca@istc.cnr.it
 
    policy.py takes care of the creation and evaluation of the policy

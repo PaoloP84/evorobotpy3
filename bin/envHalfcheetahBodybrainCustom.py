@@ -1,3 +1,13 @@
+"""
+   This file belongs to https://github.com/PaoloP84/evorobotpy3
+   and has been written by Paolo Pagliuca, paolo.pagliuca@istc.cnr.it
+   
+   The task has been introduced in the following article:
+   
+   Pagliuca, P. and Vitanza, A. (2025). "Learning Locomotion by Co-Evolution of Morphological and Neural Parameters".
+   In IEEE International Conference on Development and Learning (ICDL).
+"""
+
 import sys, math
 import numpy as np
 

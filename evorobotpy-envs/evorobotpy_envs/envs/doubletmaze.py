@@ -3,7 +3,7 @@
 """
 Created on Sat Jun 22 22:59:28 2024
 
-@author: pedro
+@author: Pedro Neves
 """
 
 #import os

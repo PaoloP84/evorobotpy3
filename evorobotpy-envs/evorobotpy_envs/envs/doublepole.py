@@ -1,5 +1,11 @@
 """
-Implementation of the double-pole balancing problem (Wieland, 1991)
+   This file belongs to https://github.com/PaoloP84/evorobotpy3
+   and has been written by Paolo Pagliuca, paolo.pagliuca@istc.cnr.it
+
+   Implementation of the double-pole balancing problem:
+   
+   Wieland, A. (1991). "Evolving Neural Network Controllers for Unstable Systems".
+   In IEEE International Joint Conference on Neural Networks (IJCNN).
 """
 import math
 from typing import Optional, Tuple, Union
@@ -112,6 +118,7 @@ class DoublePoleEnv(gym.Env):
                 self.long_poles = bool(opt)
             except:
                 pass
+                
         self.gravity = 9.8
         self.masscart = 1.0
         self.masspole = 0.1

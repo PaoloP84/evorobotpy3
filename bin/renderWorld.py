@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-   This file belong to https://github.com/snolfi/evorobotpy
-   and has been written by Stefano Nolfi, stefano.nolfi@istc.cnr.it
+   This file belong to https://github.com/PaoloP84
+   and has been written by Stefano Nolfi and Paolo Pagliuca, stefano.nolfi@istc.cnr.it, paolo.pagliuca@istc.cnr.it
 
    renderWorld.py include methods for rendering the activations of neurons
    and methods for rendering the behavior Er environments

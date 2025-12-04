@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-   This file belong to https://github.com/snolfi/evorobotpy
-   and has been written by Stefano Nolfi, stefano.nolfi@istc.cnr.it
+   This file belongs to https://github.com/PaoloP84/evorobotpy3
+   and has been written by Stefano Nolfi and Paolo Pagliuca, stefano.nolfi@istc.cnr.it, paolo.pagliuca@istc.cnr.it
 
    plotave.py extract performance in postevaluation episode from StatS?.fit files
    and print the average and the standard deviation

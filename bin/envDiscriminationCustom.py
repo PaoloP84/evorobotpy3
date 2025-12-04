@@ -1,3 +1,12 @@
+"""
+   This file belongs to https://github.com/PaoloP84/evorobotpy3
+   and has been written by Paolo Pagliuca, paolo.pagliuca@istc.cnr.it
+   
+   The task has been introduced in the following article:
+   
+   Nolfi, S. (2002). Power and the limits of reactive agents. Neurocomputing
+"""
+
 import sys, math, time
 import numpy as np
 
@@ -30,16 +39,6 @@ if TYPE_CHECKING:
 
 FPS    = 50
 SCALE  = 25.0
-
-# TO DO:
-# agents da dynamicBody a kinematicBody (come gestisce le collisioni però)?
-# set velocities: setLinearVelocity((vx, vy)) e setAngularVelocity(theta)? Quindi rete neurale con 3 output???
-# sensor inputs of the agents: che usiamo?
-# dato field-of-view (es. 90°) e distanza massima di visibilità, potremmo:
-# - se vede il compagno blu in un settore, prendiamo quanto ne vede
-# - se vede un oggetto in un settore, prendiamo quanto ne vede
-# - in caso di sovrapposizione, prende quello più vicino?
-# - colore oggetto rilevato (3 neuroni R, G, B che possono assumere valori tra 0 e 1)?
 
 # Field sizes and diag
 ARENA_WIDTH = 500

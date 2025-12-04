@@ -1,3 +1,8 @@
+"""
+   This file belongs to https://github.com/PaoloP84/evorobotpy3
+   and has been written by Paolo Pagliuca, paolo.pagliuca@istc.cnr.it
+"""
+
 import sys, math, time
 import numpy as np
 
@@ -507,10 +512,6 @@ class customEnv(gym.Env):
             cobj = 0
             for o in self.objects:
                 d, _ = self.distanceAndAngle(i, o, OBJECT_RADIUS)
-                """
-                if d <= 0.25:
-                    print(i, cobj, d)
-                """
                 cobj += 1
                 if d < 1e-6: # TO BE FIXED
                     reward += 1.0 # Agent hit an object
@@ -523,9 +524,6 @@ class customEnv(gym.Env):
         self.cstep += 1
         
         obs = self.getObs()
-        
-        #print(obs)
-        #time.sleep(2)
 
         # Check whether the episode must be ended
         done = False
@@ -605,16 +603,7 @@ class customEnv(gym.Env):
                             dists[idx] = dist
                             colors[s] = (255, 0, 0)
             # Finally fill observations
-            """
-            objlist = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-            for s, d in zip(sectors, dists):
-                objlist[s] = (1.0 - d / MAX_DIST)
-                if colors[s] == (0, 0, 1):
-                    objlist[NUM_SECTORS] = 1.0
-                else:
-                    objlist[NUM_SECTORS + 1] = 1.0
-            """
-            objlist = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            objlist = [0.0 for _ in range(self.ob_len)]
             for s, d in zip(sectors, dists):
                 if colors[s] == (255, 0, 0):
                     objlist[s] = (1.0 - d / MAX_DIST)

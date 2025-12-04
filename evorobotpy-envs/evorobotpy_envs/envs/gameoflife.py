@@ -1,3 +1,8 @@
+"""
+   This file belongs to https://github.com/PaoloP84/evorobotpy3
+   and has been written by Paolo Pagliuca, paolo.pagliuca@istc.cnr.it
+"""
+
 ######################################################################################################################
 #
 # Game of Life environment
@@ -9,22 +14,33 @@ import pygame
 import gymnasium as gym
 from gymnasium import spaces
 from gymnasium.utils import seeding
+from typing import Optional, Tuple, Union
 
 # Grid size
-GRID_SIZE = 10
+GRID_SIZE = 50
+# Maximum number of steps
+MAX_STEPS = 100
 
-WINDOW_WIDTH = 400
-WINDOW_HEIGHT = 400
+WINDOW_WIDTH = 640
+WINDOW_HEIGHT = 640
 
 class GameOfLifeEnv(gym.Env):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 5}
 
-    def __init__(self, render_mode=None, size=GRID_SIZE):
-        self.size = size
+    def __init__(self, render_mode: Optional[str] = None, options: Optional[dict] = None):
+        self.size = GRID_SIZE
+        if options is not None:
+            try:
+                self.size = int(options['size'])
+            except Exception as e:
+                print(e)
         
         # Parameters from which the grid is derived!!!
         self.params = None
         self.grid = None
+        # Steps
+        self.nsteps = MAX_STEPS
+        self.cstep = 0
         
         # Observation space is an encoding for the grid
         # Number of observations
@@ -47,6 +63,9 @@ class GameOfLifeEnv(gym.Env):
     def noNetEnv(self):
         return True
         
+    def setNSteps(self, nsteps):
+        self.nsteps = nsteps
+        
     def setParams(self, params):
         assert len(params) == self.ob_len, "Inconsistent sizes!!!"
         self.params = params
@@ -60,7 +79,9 @@ class GameOfLifeEnv(gym.Env):
                 if self.params[k] > 0.0:
                     self.grid[i,j] = 255
                 k += 1
-        # Observation is useless
+        # Reset step counter
+        self.cstep = 0
+        # Observation is useless, but necessary for method implementation!!!
         ob = np.zeros(self.ob_len, dtype=np.float32)
         return ob, {}
         
@@ -91,15 +112,22 @@ class GameOfLifeEnv(gym.Env):
         return num
 
     def step(self, action):
+        # Update step counter
+        self.cstep += 1
         # Count the number of alive cells
         aliveCells = self.update()
         # Check if there are no alive cells
         terminated = False
-        if aliveCells == 0:
+        if aliveCells == 0 or aliveCells == self.ob_len:
+            terminated = True
+        if self.cstep >= self.nsteps:
             terminated = True
             
         # Compute reward
-        reward = float(aliveCells) / float(self.ob_len) # Maximum value is 1
+        reward = 0.0
+        if terminated:
+            # Reward given only at the end of the current rollout
+            reward = float(aliveCells) / float(self.ob_len) # Maximum value is 1
         
         # Dummy observation
         ob = np.zeros(self.ob_len, dtype=np.float32)
@@ -132,7 +160,7 @@ class GameOfLifeEnv(gym.Env):
             self.clock = pygame.time.Clock()
             
         # Draw grid
-        blockSize = int(WINDOW_WIDTH / GRID_SIZE) #Set the size of the grid block
+        blockSize = int(WINDOW_WIDTH / self.size) #Set the size of the grid block
         i = 0
         for x in range(0, WINDOW_WIDTH, blockSize):
             j = 0

@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 
 """
-   This file belong to https://github.com/snolfi/evorobotpy
+   This file belongs to https://github.com/PaoloP84/evorobotpy3
    and has been written by Stefano Nolfi and Paolo Pagliuca, stefano.nolfi@istc.cnr.it, paolo.pagliuca@istc.cnr.it
    es.py runs an evolutionary expriment or post-evaluate an evolved robot/s
    type python3 es.py for help
-   Requires policy.py, evoalgo.py, and salimans.py
+   Requires policy.py and evoalgo.py
    Also requires the net.so library that can be obtained by compiling with cython the following files contained in the ./lib directory:
    evonet.cpp, evonet.h, utilities.cpp, utilities.h, net.pxd, net.pyx and setupevonet.py   
    with the commands: cd ./evorobotpy/lib; python3 setupevonet.py build_ext –inplace; cp net*.so ../bin 

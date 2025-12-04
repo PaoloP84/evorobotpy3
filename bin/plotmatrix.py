@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-   This file belong to https://github.com/snolfi/evorobotpy2
-   and has been written by Stefano Nolfi, stefano.nolfi@istc.cnr.it
+   This file belong to https://github.com/PaoloP84/evorobotpy3
+   and has been written by Stefano Nolfi and Paolo Pagliuca, stefano.nolfi@istc.cnr.it, paolo.pagliuca@istc.cnr.it
 
    plotmatrix.py plot the data contained in a *.npy matrix file as a colormap
 

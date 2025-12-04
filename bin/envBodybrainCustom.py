@@ -1,3 +1,12 @@
+"""
+   This file belongs to https://github.com/PaoloP84/evorobotpy3
+   and has been written by Paolo Pagliuca, paolo.pagliuca@istc.cnr.it
+   
+   The task is a 2D version of the problem introduced in the following article:
+   
+   Pagliuca, P. and Nolfi, S. (2022). "The Dynamic of Body and Brain Co-Evolution". Adaptive Behavior
+"""
+
 import sys, math
 import numpy as np
 
