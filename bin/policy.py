@@ -440,6 +440,11 @@ class PolicyNoNet(Policy):
             self.normvector = np.arange(self.ninputs*2, dtype=np.float64)
         else:
             self.normvector = None
+        # Try to set the number of steps
+        try:
+            self.env.setNSteps(self.maxsteps)
+        except Exception as e:
+            print(e)
         #Policy.__init__(self, env, filename, seed, test)
         
     def get_trainable_flat(self):

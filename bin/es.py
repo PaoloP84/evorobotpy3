@@ -144,7 +144,7 @@ def main(argv):
 
     parseConfigFile(args.fileini)   # load hyperparameters from the ini file
 
-    availableAlgos = ('OpenAI-ES', 'SSS', 'CMA-ES', 'xNES', 'sNES', 'GA', 'generational', 'hillclimber', 'evostick', 'generalist', 'coevo2', 'coevo', 'archivestar1', 'coevoarch', 'coevosinglepop', 'archivestar1singlepop', 'coevoarchsinglepop')   # check whether the user specified a valid algorithm
+    availableAlgos = ('OpenAI-ES', 'SSS', 'CMA-ES', 'xNES', 'sNES', 'GA', 'generational', 'hillclimber', 'evostick', 'SSSHC', 'OpenAI-ES_pop', 'generalist', 'coevo2', 'coevo', 'archivestar1', 'coevoarch', 'coevosinglepop', 'archivestar1singlepop', 'coevoarchsinglepop')   # check whether the user specified a valid algorithm
     if algoname not in availableAlgos:
         print("\033[1mAlgorithm %s is unknown\033[0m" % algoname)
         print("Please use one of the following algorithms:")
@@ -217,41 +217,51 @@ def main(argv):
         try:
             try:
                 env = gym.make(environment, render_mode=render_mode, options=optdict)
-            except:
+            except Exception as e:
+                print(e)
                 print(f"Environment {environment} might not accept <options> dict as parameter")
                 env = gym.make(environment, render_mode=render_mode)
-        except:
+        except Exception as e:
+            print(e)
             print(f"Environment {environment} is not registered in gymnasium... Look for it in evorobotpy_envs!")
             try:
                 envname = os.path.join("evorobotpy_envs", environment)
                 try:
                     env = gym.make(envname, render_mode=render_mode, options=optdict)
-                except:
+                except Exception as e:
+                    print(e)
                     print(f"Environment {envname} might not accept <options> dict as parameter")
                     env = gym.make(envname, render_mode=render_mode)
                 add_env = True
                 no_net_env = False
                 try:
                     no_net_env = env.noNetEnv()
-                except:
-                    pass
-            except:
+                except Exception as e:
+                    print(e)
+            except Exception as e:
+                print(e)
                 print(f"Environment {environment} (passed to gym.make() with argument {envname}) not found!!!")
                 try:
-                    import evogym.envs
-                    from evogym import sample_robot
-                    # Robot size
-                    robot_size = 5 # Taken from evogym examples!
-                    try:
-                        robot_size = options['size']
-                    except:
-                        pass
-                    # Create a random body based on the passed size
-                    body, connections = sample_robot((robot_size, robot_size))
-                    env = gym.make(environment, body=body, connections=connections, render_mode=render_mode)
-                except:
+                    env = gym.make(environment)
+                except Exception as e:
+                    print(e)
                     print(f"Environment {environment} not found!!!")
-                    sys.exit()
+                    try:
+                        import evogym.envs
+                        from evogym import sample_robot
+                        # Robot size
+                        robot_size = 5 # Taken from evogym examples!
+                        try:
+                            robot_size = options['size']
+                        except Exception as e:
+                            print(e)
+                        # Create a random body based on the passed size
+                        body, connections = sample_robot((robot_size, robot_size))
+                        env = gym.make(environment, body=body, connections=connections, render_mode=render_mode)
+                    except Exception as e:
+                        print(e)
+                        print(f"Environment {environment} not found!!!")
+                        sys.exit()
         if no_net_env:
             from policy import PolicyNoNet
             policy = PolicyNoNet(env, args.fileini, args.seed, test)
@@ -288,6 +298,10 @@ def main(argv):
         from hillclimber import Algo
     elif (algoname == 'evostick'):
         from evostick import Algo
+    elif (algoname == 'OpenAI-ES_pop'):
+        from openaiespop import Algo
+    elif (algoname == 'SSSHC'):
+        from ssshc import Algo
     elif (algoname == 'coevo' or algoname == 'generalist'):
         from coevo import Algo
     elif (algoname == 'coevo2'):
