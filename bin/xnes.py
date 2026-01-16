@@ -1,9 +1,13 @@
 #!/usr/bin/python
 
 """
-   This file belong to https://github.com/PaoloP84/evorobotpy3
+   This file belongs to https://github.com/PaoloP84/evorobotpy3
    and has been written by Paolo Pagliuca, paolo.pagliuca@istc.cnr.it
    requires es.py, policy.py, and evoalgo.py 
+
+   It includes the implementation of the Exponential Natural Evolution Strategies (xNES) algorithm described in the following paper:
+
+   Wierstra, D., Schaul, T., Glasmachers, T., Sun, Y., Peters, J., & Schmidhuber, J. (2014). Natural evolution strategies. The Journal of Machine Learning Research, 15(1), 949-980.
 """
 
 # Libraries to be imported

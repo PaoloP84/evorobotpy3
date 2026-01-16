@@ -2,9 +2,13 @@
 # -*- coding: utf-8 -*-
 
 """
-   This file belong to https://github.com/PaoloP84/evorobotpy3
+   This file belongs to https://github.com/PaoloP84/evorobotpy3
    and has been written by Stefano Nolfi and Paolo Pagliuca, stefano.nolfi@istc.cnr.it, paolo.pagliuca@istc.cnr.it
    requires es.py, policy.py, and evoalgo.py 
+
+   It includes the implementation of the Stochastic Steady State (SSS) algorithm introduced in the following paper:
+
+   Pagliuca, P., Milano, N., & Nolfi, S. (2018). Maximizing adaptive power in neuroevolution. PLOS One, 13(7), e0198788.
 """
 
 import numpy as np

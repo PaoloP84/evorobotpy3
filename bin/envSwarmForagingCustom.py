@@ -1,6 +1,11 @@
 """
    This file belongs to https://github.com/PaoloP84/evorobotpy3
    and has been written by Paolo Pagliuca, paolo.pagliuca@istc.cnr.it
+   It includes an implementation of the foraging with poison problem used for the experiments reported in the following paper:
+
+   Pagliuca P. (2026). Whether, how and when modern evolutionary strategies can be improved. Journal of Artificial Intelligence and Autonomous Intelligence, vol. 2, issue 3, pp. 425-450.
+
+   It has been thought to be further extended to robot swarms.
 """
 
 import sys, math, time

@@ -2,10 +2,9 @@
    This file belongs to https://github.com/PaoloP84/evorobotpy3
    and has been written by Paolo Pagliuca, paolo.pagliuca@istc.cnr.it
 
-   Implementation of the double-pole balancing problem:
+   Implementation of the double-pole balancing problem (see the following paper):
    
-   Wieland, A. (1991). "Evolving Neural Network Controllers for Unstable Systems".
-   In IEEE International Joint Conference on Neural Networks (IJCNN).
+   Wieland, A. (1991). "Evolving Neural Network Controllers for Unstable Systems". In IEEE International Joint Conference on Neural Networks (IJCNN).
 """
 import math
 from typing import Optional, Tuple, Union

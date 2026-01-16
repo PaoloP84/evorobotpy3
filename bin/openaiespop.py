@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-   This file belong to https://github.com/PaoloP84/evorobotpy3
+   This file belongs to https://github.com/PaoloP84/evorobotpy3
    and has been written by Paolo Pagliuca, paolo.pagliuca@istc.cnr.it
    It includes an implementation of the OpenAI-ES+HC, PopOpenAI-ES, 
    PopOpenAI-ES+HC algorithm described in the following paper:

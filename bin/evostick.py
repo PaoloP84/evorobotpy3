@@ -5,6 +5,10 @@
    This file belongs to https://github.com/PaoloP84/evorobotpy3
    and has been written by Paolo Pagliuca, paolo.pagliuca@istc.cnr.it
    requires es.py, policy.py, and evoalgo.py 
+
+   It implements the EvoStick algorithm introduced in the following paper:
+
+   Francesca, G., Brambilla, M., Trianni, V., Dorigo, M., & Birattari, M. (2012). Analysing an evolved robotic behaviour using a biological model of collegial decision making. In International Conference on Simulation of Adaptive Behavior (pp. 381-390). Springer.
 """
 
 import numpy as np

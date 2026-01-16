@@ -2,10 +2,12 @@
 # -*- coding: utf-8 -*-
 
 """
-   This file belong to https://github.com/PaoloP84/evorobotpy3
+   This file belongs to https://github.com/PaoloP84/evorobotpy3
    and has been written by Paolo Pagliuca, paolo.pagliuca@istc.cnr.it
-   It includes an implementation of the SSSHC algorithm described in the following paper:
+   It includes an implementation of the Stochastic Steady State with Hill Climbing (SSSHC) algorithm described in the following paper:
+
    Pagliuca P. (2024). Learning and evolution: factors influencing an effective combination. AI, vol. 5, issue 4, pp. 2393-2432.
+
    requires es.py, policy.py, and evoalgo.py 
 """
 

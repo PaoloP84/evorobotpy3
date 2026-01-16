@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-   This file belong to https://github.com/PaoloP84/evorobotpy3
+   This file belongs to https://github.com/PaoloP84/evorobotpy3
    and has been written by Stefano Nolfi and Paolo Pagliuca, stefano.nolfi@istc.cnr.it, paolo.pagliuca@istc.cnr.it
 
    utils.py include sorting functions

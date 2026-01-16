@@ -4,6 +4,10 @@
    This file belongs to https://github.com/PaoloP84/evorobotpy3
    and has been written by Paolo Pagliuca, paolo.pagliuca@istc.cnr.it
    requires es.py, policy.py, and evoalgo.py 
+
+   It includes the implementation of the Covariance Matrix Adaptation Evolutionary Strategy introduced in the following paper:
+
+   Hansen, N., & Ostermeier, A. (2001). Completely derandomized self-adaptation in evolution strategies. Evolutionary computation, 9(2), 159-195.
 """
 
 # Libraries to be imported

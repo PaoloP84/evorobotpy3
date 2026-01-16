@@ -1,13 +1,17 @@
-"""
-   This file belongs to https://github.com/PaoloP84/evorobotpy3
-   and has been written by Paolo Pagliuca, paolo.pagliuca@istc.cnr.it
-"""
-
 ######################################################################################################################
 #
 # Game of Life environment
 #
 ######################################################################################################################
+
+"""
+   This file belongs to https://github.com/PaoloP84/evorobotpy3
+   and has been written by Paolo Pagliuca, paolo.pagliuca@istc.cnr.it
+
+   It adapts the Conway's game of life:
+
+   Gardner, M. (1970). Mathematical Games: The fantastic combinations of John Conway’s new solitaire game’life’Scientific American.
+"""
 
 import numpy as np
 import pygame

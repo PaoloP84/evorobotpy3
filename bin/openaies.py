@@ -4,7 +4,7 @@
 """
    This file belongs to https://github.com/PaoloP84/evorobotpy3
    and has been written by Stefano Nolfi and Paolo Pagliuca, stefano.nolfi@istc.cnr.it, paolo.pagliuca@istc.cnr.it
-   salimans.py include an implementation of the OpenAI-ES algorithm described in
+   openaies.py include an implementation of the OpenAI-ES algorithm described in
    Salimans T., Ho J., Chen X., Sidor S & Sutskever I. (2017). Evolution strategies as a scalable alternative to reinforcement learning. arXiv:1703.03864v2
    requires es.py, policy.py, and evoalgo.py 
 """

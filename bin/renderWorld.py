@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-   This file belong to https://github.com/PaoloP84
+   This file belongs to https://github.com/PaoloP84
    and has been written by Stefano Nolfi and Paolo Pagliuca, stefano.nolfi@istc.cnr.it, paolo.pagliuca@istc.cnr.it
 
    renderWorld.py include methods for rendering the activations of neurons

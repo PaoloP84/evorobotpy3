@@ -5,6 +5,10 @@
    This file belongs to https://github.com/PaoloP84/evorobotpy3
    and has been written by Paolo Pagliuca, paolo.pagliuca@istc.cnr.it
    requires es.py, policy.py, and evoalgo.py 
+
+   It implements the Generational Genetic Algorithm (GGA) introduced in the following paper:
+
+   Grefenstette, J. J. (1992). Genetic algorithms for changing environments. In Parallel problem solving from nature, 2, 137-144.
 """
 
 import numpy as np

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Sat Jun 22 22:59:28 2024
+   This file belongs to https://github.com/PaoloP84/evorobotpy3
+   and has been written by Pedro Neves, pedro.neves@istc.cnr.it
 
-@author: Pedro Neves
+   Implementation of the double-T maze problem.
 """
 
 #import os
