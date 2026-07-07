@@ -8,6 +8,10 @@
    It includes the implementation of the Exponential Natural Evolution Strategies (xNES) algorithm described in the following paper:
 
    Wierstra, D., Schaul, T., Glasmachers, T., Sun, Y., Peters, J., & Schmidhuber, J. (2014). Natural evolution strategies. The Journal of Machine Learning Research, 15(1), 949-980.
+
+   It also enables to use symmetric sampling and weight decay, hence implementing the variants proposed in
+
+   Pagliuca, P. (2026). Enhancing Performance of Evolutionary Strategies with Symmetric Sampling (Furthermore, Weight Decay). Algorithms, 19(7), 504.
 """
 
 # Libraries to be imported
@@ -47,6 +51,8 @@ class Algo(EvoAlgo):
             self.maxsteps = 1000000
             self.batchSize = 0
             self.saveeach = 60
+            self.symm = False
+            self.wdecay = 0
             options = config.options("ALGO")
             for o in options:
                 found = 0
@@ -58,6 +64,12 @@ class Algo(EvoAlgo):
                     found = 1
                 if o == "saveeach":
                     self.saveeach = config.getint("ALGO","saveeach")
+                    found = 1
+                if o == "symm":
+                    self.symm = bool(config.getint("ALGO","symm"))
+                    found = 1
+                if o == "wdecay":
+                    self.wdecay = config.getint("ALGO","wdecay")
                     found = 1
 
                 if found == 0:
@@ -79,6 +91,8 @@ class Algo(EvoAlgo):
         if self.batchSize == 0:
             # Use default value: 4 + floor(3 * log(N)), where N is the number of parameters
             self.batchSize = int(4 + floor(3 * log(self.nparams))) # population size, offspring
+        if self.symm:
+            self.batchSize *= 2
         self.mu = int(floor(self.batchSize / 2))                       # number of parents/points for recombination
         self.weights = log(self.mu + 1) - log(array(range(1, self.mu + 1)))	  # use array
         self.weights /= sum(self.weights)
@@ -112,6 +126,12 @@ class Algo(EvoAlgo):
         cseed = self.seed + self.cgen * self.batchSize  # Set the seed for current generation (master and workers have the same seed)
         self.rs = np.random.RandomState(cseed)
         self.samples = self.rs.randn(self.nparams, self.batchSize)
+        # Overwrite (second) half of the samples with symmetric values from first half
+        if self.symm:
+            halfSize = int(self.batchSize / 2)
+            for i in range(halfSize):
+                for j in range(self.nparams):
+                    self.samples[j, i + halfSize] = -self.samples[j,i]
         self.cgen += 1
         
         # Compute the exponential of the covariance matrix
@@ -176,7 +196,11 @@ class Algo(EvoAlgo):
             for j in range(self.batchSize):
                 us[i][j] = U[i][j] * self.samples[i][j]
         G = us.dot(self.samples.transpose()) - sum(utilities) * self._I
-        dCenter = self.centerLearningRate * self._expA.dot(self.samples.dot(uT))
+        decayVector = zeros((self.nparams,1))
+        if self.wdecay == 1:
+            for g in range(self.nparams):
+                decayVector[g,0] = 0.005 * self.center[g]
+        dCenter = self.centerLearningRate * (self._expA.dot(self.samples.dot(uT)) - decayVector)
         deltaCenter = zeros(self.nparams)
         for g in range(self.nparams):
             deltaCenter[g] = dCenter[g,0]

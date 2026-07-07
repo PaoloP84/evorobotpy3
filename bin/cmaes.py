@@ -8,6 +8,10 @@
    It includes the implementation of the Covariance Matrix Adaptation Evolutionary Strategy introduced in the following paper:
 
    Hansen, N., & Ostermeier, A. (2001). Completely derandomized self-adaptation in evolution strategies. Evolutionary computation, 9(2), 159-195.
+
+   It also enables to use symmetric sampling and weight decay, hence implementing the variants proposed in
+
+   Pagliuca, P. (2026). Enhancing Performance of Evolutionary Strategies with Symmetric Sampling (Furthermore, Weight Decay). Algorithms, 19(7), 504.
 """
 
 # Libraries to be imported
@@ -49,6 +53,8 @@ class Algo(EvoAlgo):
             self.maxsteps = 1000000
             self.batchSize = 0
             self.saveeach = 60
+            self.symm = False
+            self.wdecay = 0
             options = config.options("ALGO")
             for o in options:
                 found = 0
@@ -60,6 +66,12 @@ class Algo(EvoAlgo):
                     found = 1
                 if o == "saveeach":
                     self.saveeach = config.getint("ALGO","saveeach")
+                    found = 1
+                if o == "symm":
+                    self.symm = bool(config.getint("ALGO","symm"))
+                    found = 1
+                if o == "wdecay":
+                    self.wdecay = config.getint("ALGO","wdecay")
                     found = 1
 
                 if found == 0:
@@ -81,6 +93,8 @@ class Algo(EvoAlgo):
         if self.batchSize == 0:
             # Use default value: 4 + floor(3 * log(N)), where N is the number of parameters
             self.batchSize = int(4 + floor(3 * log(self.nparams))) # population size, offspring
+        if self.symm:
+            self.batchSize *= 2
         self.mu = int(floor(self.batchSize / 2)) # number of parents/points for recombination
         self.weights = log(self.mu + 1) - log(array(range(1, self.mu + 1))) # use array
         self.weights /= sum(self.weights)	# normalize recombination weights array
@@ -125,6 +139,12 @@ class Algo(EvoAlgo):
         cseed = self.seed + self.cgen * self.batchSize  # Set the seed for current generation (master and workers have the same seed)
         self.rs = np.random.RandomState(cseed)
         self.samples = self.rs.randn(self.nparams, self.batchSize)
+        # Overwrite (second) half of the samples with symmetric values from first half
+        if self.symm:
+            halfSize = int(self.batchSize / 2)
+            for i in range(halfSize):
+                for j in range(self.nparams):
+                    self.samples[j, i + halfSize] = -self.samples[j,i]
         self.cgen += 1
 
         # Generate offspring
@@ -178,7 +198,11 @@ class Algo(EvoAlgo):
         offmut = offsel - tile(self.center.reshape(self.nparams, 1), (1, self.mu))
 
         samplemean = dot(samsel, self.weights)
-        self.center = dot(offsel, self.weights)
+        decayVector = zeros(self.nparams)
+        if self.wdecay == 1:
+            for g in range(self.nparams):
+                decayVector[g] = 0.005 * self.center[g] 
+        self.center = dot(offsel, self.weights) - decayVector
         self.avecenter = np.average(np.absolute(self.center))
 
         # Cumulation: Update evolution paths

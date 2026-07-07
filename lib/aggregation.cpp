@@ -517,7 +517,7 @@ void Problem::render()
             		case WALL:
             		default:
                 		dobjects[c] = 2.0;
-               		dobjects[c+3] = envobjs[i].x2 * scale;
+               			dobjects[c+3] = envobjs[i].x2 * scale;
                 		dobjects[c+4] = envobjs[i].y2 * scale;
                 		dobjects[c+8] = 0.0;
                 		dobjects[c+9] = 0.0;

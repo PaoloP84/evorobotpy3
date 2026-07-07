@@ -6,10 +6,6 @@
    This file belong to https://github.com/PaoloP84/evorobotpy3
    and has been written by Paolo Pagliuca, paolo.pagliuca@istc.cnr.it
 
-   coevo2.py include an implementation of an competitive co-evolutionary algorithm analogous
-   to that described in:
-   Simione L and Nolfi S. (2019). Long-Term Progress and Behavior Complexification in Competitive Co-Evolution, arXiv:1909.08303.
-
    Requires es.py policy.py and evoalgo.py
    Also requires the net.so library that can be obtained by compiling with cython the following files contained in the ./lib directory:
    evonet.cpp, evonet.h, utilities.cpp, utilities.h, net.pxd, net.pyx and setupevonet.py  

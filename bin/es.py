@@ -144,7 +144,7 @@ def main(argv):
 
     parseConfigFile(args.fileini)   # load hyperparameters from the ini file
 
-    availableAlgos = ('OpenAI-ES', 'SSS', 'CMA-ES', 'xNES', 'sNES', 'GA', 'generational', 'hillclimber', 'evostick', 'SSSHC', 'OpenAI-ES_pop', 'generalist', 'coevo2', 'coevo', 'archivestar1', 'coevoarch', 'coevosinglepop', 'archivestar1singlepop', 'coevoarchsinglepop')   # check whether the user specified a valid algorithm
+    availableAlgos = ('OpenAI-ES', 'SSS', 'CMA-ES', 'xNES', 'sNES', 'GA', 'generational', 'hillclimber', 'evostick', 'SSSHC', 'OpenAI-ES_pop', 'PSO', 'DE', 'generalist', 'coevo2', 'coevo', 'archivestar1', 'coevoarch', 'coevosinglepop', 'archivestar1singlepop', 'coevoarchsinglepop')   # check whether the user specified a valid algorithm
     if algoname not in availableAlgos:
         print("\033[1mAlgorithm %s is unknown\033[0m" % algoname)
         print("Please use one of the following algorithms:")
@@ -302,6 +302,10 @@ def main(argv):
         from openaiespop import Algo
     elif (algoname == 'SSSHC'):
         from ssshc import Algo
+    elif (algoname == 'PSO'):
+        from pso import Algo
+    elif (algoname == 'DE'):
+        from diffevo import Algo
     elif (algoname == 'coevo' or algoname == 'generalist'):
         from coevo import Algo
     elif (algoname == 'coevo2'):

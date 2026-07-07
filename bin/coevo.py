@@ -5,7 +5,7 @@
    This file belong to https://github.com/PaoloP84/evorobotpy3
    and has been written by Stefano Nolfi and Paolo Pagliuca, stefano.nolfi@istc.cnr.it, paolo.pagliuca@istc.cnr.it
 
-   coevo2.py include an implementation of an competitive co-evolutionary algorithm analogous
+   coevo.py include an implementation of an competitive co-evolutionary algorithm analogous
    to that described in:
    Simione L and Nolfi S. (2019). Long-Term Progress and Behavior Complexification in Competitive Co-Evolution, arXiv:1909.08303.
 

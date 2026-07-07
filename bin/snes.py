@@ -8,11 +8,15 @@
    It includes the implementation of the Separable Natural Evolution Strategies (sNES) algorithm described in the following paper:
 
    Wierstra, D., Schaul, T., Glasmachers, T., Sun, Y., Peters, J., & Schmidhuber, J. (2014). Natural evolution strategies. The Journal of Machine Learning Research, 15(1), 949-980.
+
+   It also enables to use symmetric sampling and weight decay, hence implementing the variants proposed in
+
+   Pagliuca, P. (2026). Enhancing Performance of Evolutionary Strategies with Symmetric Sampling (Furthermore, Weight Decay). Algorithms, 19(7), 504.
 """
 
 # Libraries to be imported
-import gym
-from gym import spaces
+import gymnasium
+from gymnasium import spaces
 import numpy as np
 from numpy import floor, log, eye, zeros, array, sqrt, sum, dot, tile, outer, real
 from numpy import exp, diag, power, ravel
@@ -47,6 +51,8 @@ class Algo(EvoAlgo):
             self.maxsteps = 1000000
             self.batchSize = 0
             self.saveeach = 60
+            self.symm = False
+            self.wdecay = 0
             options = config.options("ALGO")
             for o in options:
                 found = 0
@@ -58,6 +64,12 @@ class Algo(EvoAlgo):
                     found = 1
                 if o == "saveeach":
                     self.saveeach = config.getint("ALGO","saveeach")
+                    found = 1
+                if o == "symm":
+                    self.symm = bool(config.getint("ALGO","symm"))
+                    found = 1
+                if o == "wdecay":
+                    self.wdecay = config.getint("ALGO","wdecay")
                     found = 1
 
                 if found == 0:
@@ -78,7 +90,9 @@ class Algo(EvoAlgo):
         # setting parameters
         if self.batchSize == 0:
             # Use default value: 4 + floor(3 * log(N)), where N is the number of parameters
-            self.batchSize = int(4 + floor(3 * log(nparams))) # population size, offspring
+            self.batchSize = int(4 + floor(3 * log(self.nparams))) # population size, offspring
+        if self.symm:
+            self.batchSize *= 2
         self.mu = int(floor(self.batchSize / 2))                       # number of parents/points for recombination
         self.initVar = 1.0
         # setting parameters
@@ -105,7 +119,7 @@ class Algo(EvoAlgo):
         self.tnormepisodes = 0.0                 # total epsidoes in which normalization data should be collected so far
         self.normepisodes = 0                    # numer of episodes in which normalization data has been actually collected so far
         self.normalizationdatacollected = False  # whether we collected data for updating the normalization vector
-        
+
     def savedata(self):
         self.save()             # save the best agent so far, the best postevaluated agent so far, and progress data across generations
         fname = os.path.join(self.filedir, "S" + str(self.seed) + ".fit")
@@ -118,6 +132,11 @@ class Algo(EvoAlgo):
         cseed = self.seed + self.cgen * self.batchSize  # Set the seed for current generation (master and workers have the same seed)
         self.rs = np.random.RandomState(cseed)
         self.samples = self.rs.randn(self.batchSize, self.nparams)
+        # Overwrite (second) half of the samples with symmetric values from first half
+        halfSize = int(self.batchSize / 2)
+        for i in range(halfSize):
+            for j in range(self.nparams):
+                self.samples[i + halfSize,j] = -self.samples[i,j]
         self.S = self.samples.transpose()
         self.cgen += 1
 
@@ -141,7 +160,7 @@ class Algo(EvoAlgo):
         self.bfit = self.fitness[self.batchSize - 1]
         bidx = self.index[self.batchSize - 1]
         self.updateBest(self.bfit, self.offspring[bidx])                  # Stored if it is the best obtained so far
-        
+
         # postevaluate best sample of the last generation
         # in openaiesp.py this is done the next generation, move this section before the section "evaluate samples" to produce identical results
         gfit = 0
@@ -174,6 +193,11 @@ class Algo(EvoAlgo):
         Ssq = self.S * self.S
         SsqMinusOne = Ssq - ones((self.nparams, self.batchSize))
         covGrad = dot(self.weights, SsqMinusOne.transpose())
+        if self.wdecay == 1:
+            I = eye(self.nparams)
+            for i in range(self.nparams):
+                I[i,i] = 0.005 * (self.center[i] - dCenter[i])
+            covGrad -= I
         dSigma = 0.5 * self.covLearningRate * covGrad
         self._sigmas = self._sigmas * exp(dSigma).transpose()
 
