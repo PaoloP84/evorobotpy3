@@ -5,14 +5,15 @@
    This file belong to https://github.com/PaoloP84/evorobotpy3
    and has been written by Paolo Pagliuca, paolo.pagliuca@istc.cnr.it
    
-   It implements the Differential Evolution (DE) algorithm proposed in:
+   It implements the JADE algorithm proposed in:
 
-   Storn, R., & Price, K. (1997). Differential evolution – a simple and efficient heuristic for global optimization over continuous spaces. 
-   Journal of global optimization, 11(4), 341-359.
+   Zhang, J., & Sanderson, A. C. (2009). JADE: adaptive differential evolution with optional external archive. 
+   IEEE Transactions on evolutionary computation, 13(5), 945-958.
 """
 
 import numpy as np
 from numpy import zeros, dot, sqrt
+import random
 import math
 import time
 from evoalgo import EvoAlgo
@@ -22,7 +23,7 @@ import sys
 import configparser
 import copy
 
-# Differential Evolution (DE)
+# Adaptive Differential Evolution (JADE)
 class Algo(EvoAlgo):
     def __init__(self, env, policy, seed, fileini, filedir):
         EvoAlgo.__init__(self, env, policy, seed, fileini, filedir)
@@ -35,8 +36,9 @@ class Algo(EvoAlgo):
             config.read(self.fileini)
             self.maxsteps = 1000000
             self.popsize = 20 # Population size
-            self.scalefactor = 0.0 # Scale factor for mutations (should be bounded between 0 and 2)
-            self.crossrate = 0.0 # Crossover rate (should be bounded between 0 and 1)
+            self.c = 0.1 # Taken from original paper
+            self.p = 0.05 # Taken from original paper
+            self.archsize = 0 # No archive is default
             self.saveeach = 60
             options = config.options("ALGO")
             for o in options:
@@ -47,11 +49,14 @@ class Algo(EvoAlgo):
                 if o == "popsize":
                     self.popsize = config.getint("ALGO","popsize")
                     found = 1
-                if o == "scalefactor":
-                    self.scalefactor = config.getfloat("ALGO","scalefactor")
+                if o == "c":
+                    self.c = config.getfloat("ALGO","c")
                     found = 1
-                if o == "crossrate":
-                    self.crossrate = config.getfloat("ALGO","crossrate")
+                if o == "p":
+                    self.p = config.getfloat("ALGO","p")
+                    found = 1
+                if o == "archsize":
+                    self.archsize = config.getint("ALGO","archsize")
                     found = 1
                 if o == "saveeach":
                     self.saveeach = config.getint("ALGO","saveeach")
@@ -62,8 +67,9 @@ class Algo(EvoAlgo):
                     print("available hyperparameters are: ")
                     print("maxmsteps [integer]       : max number of (million) steps (default 1)")
                     print("popsize [int]             : popsize (20)")
-                    print("scalefactor [float]       : scale factor for mutation (bounded in [0,2], default 0)")
-                    print("crossrate [float]         : crossover rate (bounded in [0,1], default 0)")
+                    print("c [float]                 : factor controlling modifications for scaling factor and crossover rate")
+                    print("p [float]                 : percentage of top solutions among which extracting for mutations")
+                    print("archsize [int]            : size of the archive of outperformed solutions (default 0)")
                     print("saveeach [integer]        : save file every N minutes (default 60)")
 
                     sys.exit()
@@ -76,28 +82,40 @@ class Algo(EvoAlgo):
         fp = open(fname, "w")  # save summary
         fp.write('Seed %d (%.1f%%) gen %d msteps %d bestfit %.2f bestgfit %.2f cbestfit %.2f cbestgfit %.2f avgfit %.2f weightsize %.2f \n' % (self.seed, ceval / float(self.maxsteps) * 100, cgen, ceval / 1000000, self.bestfit, self.bestgfit, bfit, bgfit, avefit, aveweights))
         fp.close()
-            
-    def mutate(self, x):
-        return x[0] + self.scalefactor * (x[1] - x[2])
         
-    def crossover(self, mutated, target, rg, nparams):
+    def crossover(self, mutated, target, cr, irand, rg, nparams):
         # generate a uniform random value for every dimension
         p = rg.uniform(0.0, 1.0, nparams)
         # generate trial vector by binomial crossover
-        trial = [mutated[i] if p[i] < self.crossrate else target[i] for i in range(nparams)]
+        trial = [mutated[i] if (i == irand or p[i] < cr) else target[i] for i in range(nparams)]
         return trial
+        
+    def mean_l(self, vals):
+        nvals = len(vals)
+        num = 0.0
+        den = 0.0
+        for i in range(nvals):
+            num += vals[i]**2
+            den += vals[i]
+        return num / den
 
     def run(self):
 
         self.loadhyperparameters()                 # initialize hyperparameters
-        assert self.scalefactor >= 0.0 and self.scalefactor <= 2.0, "scalefactor should be bounded in [0,2]!"
-        assert self.crossrate >= 0.0 and self.crossrate <= 1.0, "crossrate should be bounded in [0,1]!"
         start_time = time.time()                   # start time
         nparams = self.policy.nparams              # number of parameters
         ceval = 0                                  # current evaluation
         cgen = 0                                   # current generation
         rg = np.random.RandomState(self.seed)      # create a random generator and initialize the seed
-        pop = rg.randn(self.popsize, nparams)      # particles
+        pop = rg.randn(self.popsize, nparams)      # population size
+        scaling_factors = zeros(self.popsize)
+        crossover_rates = zeros(self.popsize)
+        topp = int(self.p * self.popsize)
+        mu_cr = 0.5
+        st_cr = 0.1
+        mu_f = 0.5
+        st_f = 0.1
+        archive = [] # Empty archive
         fitness = zeros(self.popsize)
         self.stat = np.arange(0, dtype=np.float64) # initialize vector containing performance across generations
 
@@ -106,13 +124,17 @@ class Algo(EvoAlgo):
             self.policy.nn.initWeights()
             pop[i] = self.policy.get_trainable_flat()       
 
-        print("Differential Evolution (DE): seed %d maxmsteps %d popSize %d nparams %d" % (self.seed, self.maxsteps / 1000000, self.popsize, nparams))
+        print("Adaptive Differential Evolution (JADE): seed %d maxmsteps %d popSize %d nparams %d" % (self.seed, self.maxsteps / 1000000, self.popsize, nparams))
 
         # main loop
         elapsed = 0
         while (ceval < self.maxsteps):
             
             cgen += 1
+            
+            # Initialize the lists of successful scaling factors and crossover rates
+            successful_f = []
+            successful_cr = []
 
             # If normalize=1 we update the normalization vectors
             if (self.policy.normalize == 1):
@@ -125,15 +147,25 @@ class Algo(EvoAlgo):
             bfit = -9999999.0
             bid = -1
             for i in range(self.popsize):
-                # Choose 3 candidates other than i
-                candidates = [candidate for candidate in range(self.popsize) if candidate != i]
-                a, b, c = pop[np.random.choice(candidates, 3, replace=False)]
-                
-                # perform mutation
-                mutated = self.mutate([a, b, c])
-                # perform crossover
-                offspring = self.crossover(mutated, pop[i], rg, nparams)
-                                 
+                # Initialize scaling factors and crossover rates
+                # Crossover rate
+                crossover_rates[i] = rg.normal(loc=mu_cr, scale=st_cr)
+                # Bounding in [0,1]
+                if crossover_rates[i] < 0.0:
+                    crossover_rates[i] = 0.0
+                if crossover_rates[i] > 1.0:
+                    crossover_rates[i] = 1.0
+                # Scaling factor
+                ok = False
+                while not ok:
+                    ok = True
+                    scaling_factors[i] = mu_f + st_f * rg.standard_cauchy()
+                    # Scaling factor is truncated to 1 if F >= 1, or regenerated if F <= 0
+                    if scaling_factors[i] >= 1.0:
+                        scaling_factors[i] = 1.0
+                    if scaling_factors[i] <= 0.0:
+                        ok = False
+                                        
                 # Evaluate individual
                 self.policy.set_trainable_flat(pop[i])        # set policy parameters
                 eval_rews, eval_length = self.policy.rollout(self.policy.ntrials, seed=self.policy.get_seed + cgen)  # evaluate the individual
@@ -141,6 +173,45 @@ class Algo(EvoAlgo):
                 ceval += eval_length                          # Update the number of evaluations
                 self.updateBest(fitness[i], pop[i])           # Update data if the current offspring is better than current best
                 
+            sfitness, sindex = descendent_sort(fitness)       # sort the fitness
+            
+            for i in range(self.popsize):
+                # Choose candidate among the 100p% best solutions
+                ri = rg.randint(0, topp)
+                idx = sindex[ri]
+                cbest = pop[idx]
+                # Choose random index from the population
+                r1 = rg.randint(0, self.popsize)
+                sol1 = pop[r1]
+                # Choose another random index from P U A (union of population and archive). If no archive, random from population
+                if self.archsize == 0:
+                    ok = False
+                    while not ok:
+                        r2 = rg.randint(0, self.popsize)
+                        if r2 != r1:
+                            ok = True
+                    sol2 = pop[r2]
+                else:
+                    archlen = len(archive)
+                    ok = False
+                    while not ok:
+                        r2 = rg.randint(0, self.popsize + archlen)
+                        if r2 != r1:
+                            ok = True
+                    if r2 < self.popsize:
+                        # r2 comes from the population
+                        sol2 = pop[r2]
+                    else:
+                        # r2 comes from the archive
+                        sol2 = archive[r2 - self.popsize]
+                        
+                # Perform mutation
+                mutated = pop[i] + scaling_factors[i] * (cbest - pop[i]) + scaling_factors[i] * (sol1 - sol2)
+
+                # Perform crossover
+                prand = rg.randint(0, nparams) # Random index to allow at least one selection from mutated
+                offspring = self.crossover(mutated, pop[i], crossover_rates[i], prand, rg, nparams)
+
                 # Evaluate offspring
                 self.policy.set_trainable_flat(offspring)        # set policy parameters
                 eval_rews, eval_length = self.policy.rollout(self.policy.ntrials, seed=self.policy.get_seed + cgen)  # evaluate the individual
@@ -149,6 +220,13 @@ class Algo(EvoAlgo):
                 self.updateBest(ofit, offspring)           # Update data if the current offspring is better than current best
                 
                 if ofit > fitness[i]:
+                    if self.archsize > 0:
+                        # Individual moved to archive
+                        archive.append(pop[i])
+                    # Append crossover rate to list of successful crossovers
+                    successful_cr.append(crossover_rates[i])
+                    # Append scaling factors to list of successful scaling factors
+                    successful_f.append(scaling_factors[i])
                     # Replace individual with the offspring
                     pop[i] = copy.deepcopy(offspring)
                     # Update its fitness
@@ -158,6 +236,22 @@ class Algo(EvoAlgo):
                 if fitness[i] > bfit:
                     bfit = fitness[i]
                     bid = i
+                    
+            # Check archivesize (if enabled)
+            if self.archsize > 0:
+                archlen = len(archive)
+                if archlen > self.popsize:
+                    difflen = archlen - self.popsize
+                    indices = list(np.arange(archlen))
+                    removed = random.sample(indices, difflen)
+                    # Delete indices
+                    for elem in sorted(removed, reverse=True):
+                        archive.pop(elem)
+                    assert len(archive) == self.archsize, "Unexpected error!"
+                        
+            # Update mu_cr and mu_f
+            mu_cr = (1.0 - self.c) * mu_cr + self.c * np.mean(successful_cr)
+            mu_f = (1.0 - self.c) * mu_f + self.c * self.mean_l(successful_f)
                 
             # Postevaluate the best individual
             #self.env.seed(self.policy.get_seed + 100000)      # set the environmental seed, always the same for the same seed

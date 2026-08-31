@@ -69,7 +69,7 @@ SCALE  = 30.0   # affects how fast-paced the game is, forces should be adjusted 
 
 MOTORS_TORQUE = 100.0
 
-VIEWPORT_W = 1500
+VIEWPORT_W = 1200
 VIEWPORT_H = 600
 
 TERRAIN_STEP   = 14/SCALE
@@ -151,7 +151,8 @@ class customEnv(gym.Env):
             except:
                 pass
             try:
-                self.hardcore = bool(options['hardcore'])
+                hardcore = int(options['hardcore'])
+                self.hardcore = bool(hardcore)
             except:
                 pass
 
@@ -180,7 +181,6 @@ class customEnv(gym.Env):
         self.nparams = (self.nsizes + self.nangleranges + self.nangles + self.ndensities) # Torso width and height + 2 for each segment (width and height) + 2 for each joint (asymmetric angular ranges) except for the head + torso angle + one for each segment angle + torso density + one for each segment density. N.B.: number of joints matches number of segments (there is one joint between each pair of segments including torso)
         self.params = np.zeros(self.nparams, dtype=np.float64)#np.ones(self.nparams, dtype=np.float64)
         self.factors = np.ones(self.nparams, dtype=np.float64) # 2 for each segment (width and height) + 2 for each joint (asymmetric angular ranges) + torso angle + segment angle
-        self.rate = 0.0
         # Set default number of steps
         self.nsteps = NSTEPS
         # Test flag

@@ -4,7 +4,11 @@
 """
    This file belong to https://github.com/PaoloP84/evorobotpy3
    and has been written by Paolo Pagliuca, paolo.pagliuca@istc.cnr.it
-   requires es.py, policy.py, and evoalgo.py 
+   
+   It implements the Particle Swarm Optimization (PSO) algorithm introduced in:
+
+   Eberhart, R., & Kennedy, J. (1995). Particle swarm optimization. 
+   In Proceedings of the IEEE international conference on neural networks (Vol. 4, pp. 1942-1948).
 """
 
 import numpy as np
