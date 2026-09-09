@@ -4,9 +4,11 @@
 """
    This file belongs to https://github.com/PaoloP84/evorobotpy3
    and has been written by Paolo Pagliuca, paolo.pagliuca@istc.cnr.it
-   It includes an implementation of the Stochastic Steady State with Hill Climbing (SSSHC) algorithm described in the following paper:
+   It includes an implementation of the Stochastic Steady State with Hill Climbing (SSSHC) algorithm described in the following papers:
 
    Pagliuca P. (2024). Learning and evolution: factors influencing an effective combination. AI, vol. 5, issue 4, pp. 2393-2432.
+
+   Pagliuca P. (2024). Analysis of the exploration-exploitation dilemma in neutral problems with evolutionary algorithms. Journal of Artificial Intelligence and Autonomous Intelligence, 1(2), pp. 110-121.
 
    requires es.py, policy.py, and evoalgo.py 
 """

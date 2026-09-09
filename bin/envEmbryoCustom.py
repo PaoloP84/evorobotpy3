@@ -177,7 +177,6 @@ class customEnv(gym.Env):
         self.nparams = (self.nsizes + self.nangleranges + self.nangles + self.ndensities) # Torso width and height + 2 for each segment (width and height) + 2 for each joint (asymmetric angular ranges) except for the head + torso angle + one for each segment angle + torso density + one for each segment density. N.B.: number of joints matches number of segments (there is one joint between each pair of segments including torso)
         self.params = np.zeros(self.nparams, dtype=np.float64)
         self.factors = np.ones(self.nparams, dtype=np.float64) # 2 for each segment (width and height) + 2 for each joint (asymmetric angular ranges) + torso angle + segment angle
-        self.rate = 0.0
 
         # Number of observations
         self.ob_len = 5 + (self.njoints * 2) + self.numSegs # 5 for torso, njoints * 2 for each joint, contact flag for each segment
@@ -387,10 +386,16 @@ class customEnv(gym.Env):
             # Body sizes (width and height of segments) are scaled depending on the parameter
             # (1 + p * rate)
             factor = (val * (1.0 + np.tanh(self.params[idx]) * self.rate))
+            if factor < 0.01:
+                factor = val * 0.01
         elif idx >= (self.nsizes + self.nangleranges + self.nangles):
             # Segment densities
             # Density factors are computed as tanh(p), where p is the density parameter
-            factor = (val + (0.8 * np.tanh(self.params[idx])))
+            #factor = (val + (0.8 * np.tanh(self.params[idx])))
+            factor = (val * (1.0 + np.tanh(self.params[idx]) * self.rate))
+            if factor < 0.01:
+                # Minimum factor is the original value times 0.01 (i.e., a decrease factor of 0.99)
+                factor = val * 0.01
         else:
             # Joint ranges and segment angles
             # Angle factors must belong to range [-1,1]. Values

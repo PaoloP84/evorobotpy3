@@ -527,15 +527,8 @@ class customEnv(BipedalWalker, EzPickle):
         leg_down = last_y / SCALE
         # Update density
         idx = self.nsegs
-        coeff_density = None
         coeff_d = self.computeFactor(idx)
-        """
-        if abs(coeff_d - coeff) <= 0.2:
-            coeff_density = coeff_d
-        else:
-            coeff_density = coeff
-        """
-        hull_density = coeff_d#ensity#coeff * 5.0#self.computeFactor(5.0, idx)
+        hull_density = coeff_d * 5.0
         # Modified hull fixture definition
         HULL_FD = fixtureDef(
             shape=polygonShape(vertices=[(x / SCALE, y / SCALE) for x, y in HULL_POLY_MOD]),
@@ -566,24 +559,12 @@ class customEnv(BipedalWalker, EzPickle):
         idx = self.nsegs + 1
         coeff_density = None
         coeff_d = self.computeFactor(idx)
-        """
-        if abs(coeff_d - (leg_width_coeff * leg_height_coeff)) <= 0.2:
-            coeff_density = coeff_d
-        else:
-            coeff_density = (leg_width_coeff * leg_height_coeff)
-        """
-        leg_density = coeff_d#ensity#leg_width_coeff * leg_height_coeff#self.computeFactor(1.0, idx)
+        leg_density = coeff_d
         # Low leg
         idx += 1
         coeff_density = None
         coeff_d = self.computeFactor(idx)
-        """
-        if abs(coeff_d - (low_leg_width_coeff * low_leg_height_coeff)) <= 0.2:
-            coeff_density = coeff_d
-        else:
-            coeff_density = (low_leg_width_coeff * low_leg_height_coeff)
-        """
-        low_leg_density = coeff_d#ensity#low_leg_width_coeff * low_leg_height_coeff#self.computeFactor(1.0, idx)
+        low_leg_density = coeff_d
         # Modified leg fixture definition
         # High leg
         LEG_FD = fixtureDef(
