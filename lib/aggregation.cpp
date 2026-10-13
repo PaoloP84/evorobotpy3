@@ -219,8 +219,8 @@ void Problem::reset()
 				}
 			}
 			envobjs[4 + nest].x = nestPos[3 * nest] = fcx;
-			envobjs[4 + nest].y = nestPos[3 * nest] = fcy;
-			envobjs[4 + nest].r = nestPos[3 * nest] = fcr;
+			envobjs[4 + nest].y = nestPos[3 * nest + 1] = fcy;
+			envobjs[4 + nest].r = nestPos[3 * nest + 2] = fcr;
 			nthrobots += calcRobots(fcr);
 			// Update minimum size
 			if (nest == (nnests - 2))
@@ -771,7 +771,7 @@ void readEvoConfig()
     }
     else
     {
-        printf("ERROR: unable to open file ErForaging.ini\n");
+        printf("ERROR: unable to open file ErAggregation.ini\n");
         fflush(stdout);
     }
 }
