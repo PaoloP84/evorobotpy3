@@ -5,6 +5,8 @@
    This file belongs to https://github.com/PaoloP84/evorobotpy3
    and has been written by Paolo Pagliuca, paolo.pagliuca@istc.cnr.it
    requires es.py, policy.py, and evoalgo.py 
+
+   It implements a simple Genetic Algorithm (GA) with mutations, crossover and tournament selection.
 """
 
 import numpy as np

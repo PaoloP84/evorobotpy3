@@ -182,8 +182,6 @@ class Algo(EvoAlgo):
             ceval += eval_length
             self.updateBestg(bgfit, particles[bid])            # eventually update the genotype/fitness of the best post-evaluated individual
             
-            #print(bgfit)
-            
             avgfit = np.average(fitness[0:self.popsize])
 
             # display info

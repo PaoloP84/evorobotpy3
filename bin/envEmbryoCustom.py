@@ -5,6 +5,11 @@
    The task is a 2D version of the problem introduced in the following article:
    
    Pagliuca, P. and Nolfi, S. (2022). "The Dynamic of Body and Brain Co-Evolution". Adaptive Behavior
+
+   The task has been used in the following works:
+
+   Pagliuca, P. (2026). Leveraging High Morphology Rates in Body-Brain Co-Evolution: A Case Study on 2D Robot Locomotion. Advances in Knowledge-Based Systems, Data Science and Cybersecurity, 3(2), pp. 533-555.
+   Pagliuca, P., & Vitanza, A. (2026). The Interplay Between Functionality and Complexity in Neural Network Efficiency. In International Conference of the Italian Association for Artificial Intelligence (pp. 514-527).
 """
 
 import sys, math
