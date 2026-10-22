@@ -5,6 +5,8 @@
    This file belongs to https://github.com/PaoloP84/evorobotpy3
    and has been written by Paolo Pagliuca, paolo.pagliuca@istc.cnr.it
    requires es.py, policy.py, and evoalgo.py 
+
+   It implements the Hill-Climbing (HC) algorithm, with the possibility to use a population of independent evolving solutions.
 """
 
 import numpy as np
@@ -18,7 +20,7 @@ import sys
 import configparser
 
 
-# Evolve with Hill-climber
+# Evolve with Hill-Climbing
 class Algo(EvoAlgo):
     def __init__(self, env, policy, seed, fileini, filedir):
         EvoAlgo.__init__(self, env, policy, seed, fileini, filedir)
