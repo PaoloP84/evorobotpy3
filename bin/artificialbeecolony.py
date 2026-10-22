@@ -156,7 +156,7 @@ class Algo(EvoAlgo):
             idx = np.argmax(fitness)
             if fitness[idx] > bfit:
                 bfit = fitness[idx]
-                bindn = self.pop[idx].copy()
+                bind = self.pop[idx].copy()
 
             # Onlooker Bees Phase
             # Calculate selection probabilities
